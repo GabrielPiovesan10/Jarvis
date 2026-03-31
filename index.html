@@ -8,10 +8,15 @@
         :root { --glow: #00d2ff; --bg: #000; --error: #ff4444; }
         body { background: var(--bg); color: var(--glow); font-family: sans-serif; display: flex; flex-direction: column; justify-content:center; align-items:center; height:100vh; margin:0; overflow:hidden; }
         .orb-container { position: relative; width: 180px; height: 180px; display: flex; justify-content: center; align-items: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-        .orb { width: 105px; height: 105px; background: radial-gradient(circle, var(--glow) 0%, #004d7a 100%); border-radius: 50%; box-shadow: 0 0 60px var(--glow), inset 0 0 25px #fff; transition: 0.3s; z-index: 2; }
+        .orb { width: 105px; height: 105px; background: radial-gradient(circle, var(--glow) 0%, #004d7a 100%); border-radius: 50%; box-shadow: 0 0 60px var(--glow), inset 0 0 25px #fff; transition: transform 0.05s ease-out; z-index: 2; }
         .ring { position: absolute; width: 165px; height: 165px; border: 2px solid var(--glow); border-radius: 50%; border-top-color: transparent; border-bottom-color: transparent; animation: spin 3s linear infinite; opacity: 0.6; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        #status { text-transform: uppercase; letter-spacing: 2px; font-size: 10px; margin-top: 35px; text-align: center; color: #fff; min-height: 3em; max-width: 85%; line-height: 1.5; }
+        
+        #status { text-transform: uppercase; letter-spacing: 2px; font-size: 10px; margin-top: 35px; text-align: center; color: #fff; min-height: 2em; max-width: 85%; }
+        
+        /* NOVO ESTILO PARA O TEXTO DO USUÁRIO */
+        #user-text { font-family: monospace; font-size: 14px; color: rgba(0, 210, 255, 0.6); margin-top: 10px; text-align: center; max-width: 80%; min-height: 1.5em; font-style: italic; }
+
         .btn { padding: 15px 40px; background: transparent; border: 1px solid var(--glow); color: var(--glow); font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 20px; border-radius: 4px; }
         .btn-reset { margin-top: 15px; font-size: 9px; padding: 5px 15px; border-color: #333; color: #555; border-style: solid; border-width: 1px; }
         .overload-orb { background: radial-gradient(circle, var(--error) 0%, #7a0000 100%) !important; box-shadow: 0 0 60px var(--error) !important; }
@@ -26,11 +31,11 @@
     </div>
 
     <div id="status">SISTEMA EM AGUARDO</div>
-    <button id="btn" class="btn" onclick="boot()">INICIALIZAR NÚCLEO 2.5 LITE</button>
+    <div id="user-text"></div> <button id="btn" class="btn" onclick="boot()">INICIALIZAR NÚCLEO 2.5 LITE</button>
     <button id="btn-reset" class="btn btn-reset" onclick="resetarChave()">RESETAR CHAVE</button>
 
 <script>
-    const orb = document.getElementById('orb'), st = document.getElementById('status'), bt = document.getElementById('btn'), br = document.getElementById('btn-reset'), ring = document.getElementById('ring');
+    const orb = document.getElementById('orb'), st = document.getElementById('status'), ut = document.getElementById('user-text'), bt = document.getElementById('btn'), br = document.getElementById('btn-reset'), ring = document.getElementById('ring');
     
     let API_KEY = localStorage.getItem("GEMINI_API_KEY");
     if (!API_KEY) {
@@ -40,7 +45,6 @@
 
     function resetarChave() {
         localStorage.removeItem("GEMINI_API_KEY");
-        alert("Chave removida. O sistema será reiniciado.");
         location.reload();
     }
     
@@ -52,7 +56,11 @@
         window.speechSynthesis.cancel();
         const m = new SpeechSynthesisUtterance(t);
         m.lang = 'pt-BR'; m.rate = 1.0;
-        m.onstart = () => { jarvisOcupado = true; st.innerText = "JARVIS FALANDO..."; };
+        m.onstart = () => { 
+            jarvisOcupado = true; 
+            st.innerText = "JARVIS FALANDO..."; 
+            ut.innerText = ""; // Limpa o seu texto enquanto ele fala
+        };
         m.onend = () => { 
             if (!resfriando) {
                 st.innerText = "NÚCLEO PRONTO";
@@ -68,20 +76,20 @@
     async function perguntarIA(pergunta) {
         if (jarvisOcupado || resfriando) return;
         jarvisOcupado = true;
-        st.innerText = "SINCRONIZANDO 2.5 LITE...";
+        st.innerText = "SINCRONIZANDO...";
 
         try {
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${API_KEY}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: `Você é o JARVIS. Mestre: GABRIEL. Responda de forma curta. Pergunta: ${pergunta}` }] }] })
+                body: JSON.stringify({ contents: [{ parts: [{ text: `Você é o JARVIS. Mestre: GABRIEL. Responda de forma direta. Pergunta: ${pergunta}` }] }] })
             });
 
             if (response.status === 429) {
                 resfriando = true;
-                st.innerText = "LIMITE EXCEDIDO. RESFRIANDO...";
+                st.innerText = "LIMITE EXCEDIDO. AGUARDE.";
                 orb.classList.add('overload-orb');
-                falar("Mestre, limite de dez requisições atingido. Aguarde o resfriamento.");
+                falar("Mestre, limite atingido. Iniciando resfriamento.");
                 setTimeout(() => { 
                     orb.classList.remove('overload-orb'); 
                     resfriando = false;
@@ -101,6 +109,7 @@
 
     function forcarReativacao() {
         if (resfriando) return;
+        ut.innerText = "";
         try { reconhecimento.stop(); } catch(e){}
         setTimeout(() => { 
             try { 
@@ -113,23 +122,50 @@
 
     async function boot() {
         bt.classList.add('hidden');
-        br.classList.add('hidden'); // Esconde o botão de reset ao iniciar
-        falar("Protocolos 2.5 Lite ativos. Jarvis online.");
-        
-        const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-        reconhecimento = new SpeechRec();
-        reconhecimento.lang = 'pt-BR';
-        reconhecimento.continuous = true;
+        br.classList.add('hidden');
+        falar("Protocolos de transcrição ativos.");
 
-        reconhecimento.onresult = (e) => {
-            const cmd = e.results[e.results.length - 1][0].transcript.toLowerCase();
-            if (cmd.includes("jarvis") && !jarvisOcupado) {
-                reconhecimento.stop();
-                perguntarIA(cmd.replace("jarvis", ""));
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const analyser = audioCtx.createAnalyser();
+            const source = audioCtx.createMediaStreamSource(stream);
+            source.connect(analyser);
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+            function animar() {
+                analyser.getByteFrequencyData(dataArray);
+                let vol = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                orb.style.transform = `scale(${1 + (vol / 50)})`;
+                requestAnimationFrame(animar);
             }
-        };
-        reconhecimento.onend = () => { if(!jarvisOcupado && !resfriando) reconhecimento.start(); };
-        reconhecimento.start();
+            animar();
+
+            const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            reconhecimento = new SpeechRec();
+            reconhecimento.lang = 'pt-BR';
+            reconhecimento.continuous = true;
+            reconhecimento.interimResults = true; // Permite ver o texto enquanto você fala
+
+            reconhecimento.onresult = (e) => {
+                const result = e.results[e.results.length - 1];
+                const transcript = result[0].transcript;
+                
+                // MOSTRA O QUE VOCÊ ESTÁ FALANDO NA TELA
+                ut.innerText = `você: "${transcript.toLowerCase()}"`;
+
+                if (result.isFinal && transcript.toLowerCase().includes("jarvis") && !jarvisOcupado) {
+                    reconhecimento.stop();
+                    perguntarIA(transcript.toLowerCase().replace("jarvis", ""));
+                }
+            };
+            
+            reconhecimento.onend = () => { if(!jarvisOcupado && !resfriando) reconhecimento.start(); };
+            reconhecimento.start();
+
+        } catch (err) { 
+            st.innerText = "ERRO NO MICROFONE";
+        }
     }
 </script>
 </body>
