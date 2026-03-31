@@ -5,22 +5,25 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
     <title>JARVIS OS - GABRIEL 2.5</title>
     <style>
-        :root { --glow: #00d2ff; --bg: #000; }
+        :root { --glow: #00d2ff; --bg: #000; --error: #ff3333; }
         body { background: var(--bg); color: var(--glow); font-family: sans-serif; display: flex; flex-direction: column; justify-content:center; align-items:center; height:100vh; margin:0; overflow:hidden; }
         .orb-container { position: relative; width: 180px; height: 180px; display: flex; justify-content: center; align-items: center; cursor: pointer; }
-        .orb { width: 105px; height: 105px; background: radial-gradient(circle, var(--glow) 0%, #004d7a 100%); border-radius: 50%; box-shadow: 0 0 60px var(--glow), inset 0 0 25px #fff; transition: 0.1s; z-index: 2; }
+        .orb { width: 105px; height: 105px; background: radial-gradient(circle, var(--glow) 0%, #004d7a 100%); border-radius: 50%; box-shadow: 0 0 60px var(--glow), inset 0 0 25px #fff; transition: 0.3s; z-index: 2; }
         .ring { position: absolute; width: 165px; height: 165px; border: 2px solid var(--glow); border-radius: 50%; border-top-color: transparent; border-bottom-color: transparent; animation: spin 3s linear infinite; opacity: 0.6; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        #status { text-transform: uppercase; letter-spacing: 2px; font-size: 10px; margin-top: 35px; text-align: center; color: #fff; min-height: 3em; max-width: 85%; line-height: 1.5; }
+        #status { text-transform: uppercase; letter-spacing: 2px; font-size: 10px; margin-top: 35px; text-align: center; color: #fff; min-height: 3em; max-width: 85%; line-height: 1.5; transition: 0.3s; }
         .btn { padding: 15px 40px; background: transparent; border: 1px solid var(--glow); color: var(--glow); font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 20px; border-radius: 4px; }
         .btn-reset { margin-top: 15px; font-size: 9px; padding: 5px 15px; border-color: #333; color: #555; }
         .hidden { display: none; }
+        /* Estilo para quando o sistema está em resfriamento */
+        .overload { color: var(--error) !important; text-shadow: 0 0 10px var(--error); }
+        .overload-orb { box-shadow: 0 0 60px var(--error), inset 0 0 25px #fff !important; background: radial-gradient(circle, var(--error) 0%, #7a0000 100%) !important; }
     </style>
 </head>
 <body>
 
     <div class="orb-container" onclick="window.speechSynthesis.cancel()">
-        <div class="ring"></div>
+        <div class="ring" id="ring"></div>
         <div id="orb" class="orb"></div>
     </div>
 
@@ -29,20 +32,16 @@
     <button id="btn-reset" class="btn btn-reset" onclick="resetarChave()">RESETAR CHAVE</button>
 
 <script>
-    const orb = document.getElementById('orb'), st = document.getElementById('status'), bt = document.getElementById('btn'), br = document.getElementById('btn-reset');
+    const orb = document.getElementById('orb'), st = document.getElementById('status'), bt = document.getElementById('btn'), br = document.getElementById('btn-reset'), ring = document.getElementById('ring');
     
-    // --- SISTEMA DE CHAVE SEGURA ---
     let API_KEY = localStorage.getItem("GEMINI_API_KEY");
     if (!API_KEY) {
-        API_KEY = prompt("SISTEMA DE SEGURANÇA: Insira sua chave da API do Gemini:");
-        if (API_KEY) {
-            localStorage.setItem("GEMINI_API_KEY", API_KEY);
-        }
+        API_KEY = prompt("SISTEMA DE SEGURANÇA: Insira sua chave da API:");
+        if (API_KEY) localStorage.setItem("GEMINI_API_KEY", API_KEY);
     }
 
     function resetarChave() {
         localStorage.removeItem("GEMINI_API_KEY");
-        alert("Chave apagada. A página será reiniciada.");
         location.reload();
     }
     
@@ -53,22 +52,45 @@
         window.speechSynthesis.cancel();
         const m = new SpeechSynthesisUtterance(t);
         const voices = window.speechSynthesis.getVoices();
-        const vMasc = voices.find(v => (v.name.includes('Siri') || v.name.includes('Felipe') || v.name.includes('Daniel') || v.name.includes('Male')) && v.lang.includes('pt-BR'));
+        const vMasc = voices.find(v => (v.name.includes('Daniel') || v.name.includes('Male')) && v.lang.includes('pt-BR'));
         if (vMasc) m.voice = vMasc;
         m.lang = 'pt-BR'; m.rate = 0.95; m.pitch = 0.75;
         
         m.onstart = () => { jarvisOcupado = true; st.innerText = "JARVIS FALANDO..."; };
-
         m.onend = () => { 
-            st.innerText = "RECARREGANDO NÚCLEO...";
-            setTimeout(() => {
-                jarvisOcupado = false; 
-                st.innerText = "DIGA 'JARVIS'...";
-                try { reconhecimento.start(); } catch(e) {} // Tenta reativar o mic após os 12s
-            }, 12000); 
+            if (!st.classList.contains('overload')) {
+                st.innerText = "RECARREGANDO NÚCLEO...";
+                setTimeout(() => {
+                    jarvisOcupado = false; 
+                    st.innerText = "DIGA 'JARVIS'...";
+                    try { reconhecimento.start(); } catch(e) {}
+                }, 12000); 
+            }
         };
-        
         window.speechSynthesis.speak(m);
+    }
+
+    // --- NOVA FUNÇÃO DE RESFRIAMENTO ---
+    function iniciarResfriamento(segundos) {
+        jarvisOcupado = true;
+        st.classList.add('overload');
+        orb.classList.add('overload-orb');
+        ring.style.borderColor = "var(--error)";
+        
+        let tempo = segundos;
+        const cronometro = setInterval(() => {
+            st.innerText = `LIMITE EXCEDIDO: RESFRIANDO NÚCLEO EM ${tempo}S`;
+            tempo--;
+            if (tempo < 0) {
+                clearInterval(cronometro);
+                st.classList.remove('overload');
+                orb.classList.remove('overload-orb');
+                ring.style.borderColor = "var(--glow)";
+                jarvisOcupado = false;
+                st.innerText = "NÚCLEO PRONTO. DIGA 'JARVIS'...";
+                try { reconhecimento.start(); } catch(e) {}
+            }
+        }, 1000);
     }
 
     async function perguntarIA(pergunta) {
@@ -93,14 +115,16 @@
                 })
             });
 
-            const data = await response.json();
-            if (data.error) {
-                st.innerText = "ERRO: " + data.error.message;
-                jarvisOcupado = false;
+            // --- TRATAMENTO DE ERRO DE LIMITE ---
+            if (response.status === 429) {
+                falar("Mestre, o sistema atingiu o limite de requisições. Iniciando protocolo de resfriamento.");
+                iniciarResfriamento(60); // Espera 60 segundos por segurança
                 return;
             }
 
+            const data = await response.json();
             let txt = data.candidates[0].content.parts[0].text;
+            
             if (txt.includes("[APRENDER:")) {
                 const match = txt.match(/\[APRENDER:\s*(.*?)\]/);
                 if (match) {
@@ -117,11 +141,10 @@
     }
 
     async function boot() {
-        if (!API_KEY) { alert("Chave API não configurada!"); return; }
-
+        if (!API_KEY) return;
         bt.classList.add('hidden');
         br.classList.add('hidden');
-        falar("Iniciando protocolos de segurança.");
+        falar("Protocolos de segurança carregados. Jarvis online.");
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -147,21 +170,20 @@
             reconhecimento.onresult = (e) => {
                 const cmd = e.results[e.results.length - 1][0].transcript.toLowerCase();
                 if (cmd.includes("jarvis") && !jarvisOcupado) {
-                    reconhecimento.stop(); // Para de ouvir enquanto processa
+                    reconhecimento.stop();
                     perguntarIA(cmd.replace("jarvis", ""));
                 }
             };
 
             reconhecimento.onend = () => {
-                if (!jarvisOcupado) reconhecimento.start(); // Reinicia se cair por silêncio
+                if (!jarvisOcupado) reconhecimento.start();
             };
 
             reconhecimento.start();
             st.innerText = "DIGA 'JARVIS'...";
 
         } catch (err) { 
-            st.innerText = "ERRO: ATIVE O MICROFONE NO LINK HTTPS";
-            console.error(err);
+            st.innerText = "ERRO NO MICROFONE";
         }
     }
 </script>
