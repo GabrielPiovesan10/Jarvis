@@ -7,7 +7,7 @@
     <style>
         :root { --glow: #00d2ff; --bg: #000; --error: #ff3333; }
         body { background: var(--bg); color: var(--glow); font-family: sans-serif; display: flex; flex-direction: column; justify-content:center; align-items:center; height:100vh; margin:0; overflow:hidden; }
-        .orb-container { position: relative; width: 180px; height: 180px; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        .orb-container { position: relative; width: 180px; height: 180px; display: flex; justify-content: center; align-items: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
         .orb { width: 105px; height: 105px; background: radial-gradient(circle, var(--glow) 0%, #004d7a 100%); border-radius: 50%; box-shadow: 0 0 60px var(--glow), inset 0 0 25px #fff; transition: 0.3s; z-index: 2; }
         .ring { position: absolute; width: 165px; height: 165px; border: 2px solid var(--glow); border-radius: 50%; border-top-color: transparent; border-bottom-color: transparent; animation: spin 3s linear infinite; opacity: 0.6; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
@@ -15,14 +15,13 @@
         .btn { padding: 15px 40px; background: transparent; border: 1px solid var(--glow); color: var(--glow); font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 20px; border-radius: 4px; }
         .btn-reset { margin-top: 15px; font-size: 9px; padding: 5px 15px; border-color: #333; color: #555; }
         .hidden { display: none; }
-        /* Estilo para quando o sistema está em resfriamento */
         .overload { color: var(--error) !important; text-shadow: 0 0 10px var(--error); }
         .overload-orb { box-shadow: 0 0 60px var(--error), inset 0 0 25px #fff !important; background: radial-gradient(circle, var(--error) 0%, #7a0000 100%) !important; }
     </style>
 </head>
 <body>
 
-    <div class="orb-container" onclick="window.speechSynthesis.cancel()">
+    <div class="orb-container" onclick="forcarReativacao()">
         <div class="ring" id="ring"></div>
         <div id="orb" class="orb"></div>
     </div>
@@ -46,7 +45,21 @@
     }
     
     let jarvisOcupado = false; 
+    let resfriando = false;
     let reconhecimento;
+
+    // Função para forçar a volta se o celular travar o mic
+    function forcarReativacao() {
+        if (resfriando) return; // Se estiver no meio do tempo de erro, não faz nada
+        window.speechSynthesis.cancel();
+        jarvisOcupado = false;
+        st.innerText = "REINICIANDO ESCUTA...";
+        try { reconhecimento.stop(); } catch(e) {}
+        setTimeout(() => {
+            try { reconhecimento.start(); } catch(e) {}
+            st.innerText = "DIGA 'JARVIS'...";
+        }, 500);
+    }
 
     function falar(t) {
         window.speechSynthesis.cancel();
@@ -58,7 +71,7 @@
         
         m.onstart = () => { jarvisOcupado = true; st.innerText = "JARVIS FALANDO..."; };
         m.onend = () => { 
-            if (!st.classList.contains('overload')) {
+            if (!resfriando) {
                 st.innerText = "RECARREGANDO NÚCLEO...";
                 setTimeout(() => {
                     jarvisOcupado = false; 
@@ -70,8 +83,8 @@
         window.speechSynthesis.speak(m);
     }
 
-    // --- NOVA FUNÇÃO DE RESFRIAMENTO ---
     function iniciarResfriamento(segundos) {
+        resfriando = true;
         jarvisOcupado = true;
         st.classList.add('overload');
         orb.classList.add('overload-orb');
@@ -79,16 +92,17 @@
         
         let tempo = segundos;
         const cronometro = setInterval(() => {
-            st.innerText = `LIMITE EXCEDIDO: RESFRIANDO NÚCLEO EM ${tempo}S`;
+            st.innerText = `LIMITE EXCEDIDO: RESFRIANDO EM ${tempo}S`;
             tempo--;
             if (tempo < 0) {
                 clearInterval(cronometro);
                 st.classList.remove('overload');
                 orb.classList.remove('overload-orb');
                 ring.style.borderColor = "var(--glow)";
+                resfriando = false;
                 jarvisOcupado = false;
-                st.innerText = "NÚCLEO PRONTO. DIGA 'JARVIS'...";
-                try { reconhecimento.start(); } catch(e) {}
+                st.innerText = "NÚCLEO PRONTO. TOQUE NA ESFERA.";
+                // Não tentamos o start automático aqui para evitar o bloqueio do celular
             }
         }, 1000);
     }
@@ -115,10 +129,9 @@
                 })
             });
 
-            // --- TRATAMENTO DE ERRO DE LIMITE ---
             if (response.status === 429) {
-                falar("Mestre, o sistema atingiu o limite de requisições. Iniciando protocolo de resfriamento.");
-                iniciarResfriamento(60); // Espera 60 segundos por segurança
+                falar("Mestre, limite atingido. Iniciando resfriamento.");
+                iniciarResfriamento(60);
                 return;
             }
 
@@ -144,7 +157,7 @@
         if (!API_KEY) return;
         bt.classList.add('hidden');
         br.classList.add('hidden');
-        falar("Protocolos de segurança carregados. Jarvis online.");
+        falar("Protocolos ativos.");
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -176,7 +189,9 @@
             };
 
             reconhecimento.onend = () => {
-                if (!jarvisOcupado) reconhecimento.start();
+                if (!jarvisOcupado && !resfriando) {
+                    try { reconhecimento.start(); } catch(e) {}
+                }
             };
 
             reconhecimento.start();
