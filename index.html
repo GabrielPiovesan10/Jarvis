@@ -38,6 +38,7 @@
     <button id="btn" class="btn" onclick="boot()">BOOT JARVIS 3.1</button>
     
     <div id="tools" class="hidden" style="display: flex; gap: 10px;">
+        <button class="btn-reset" onclick="verMemoria()">VER MEMÓRIA</button>
         <button class="btn-reset" onclick="limparMemoria()">LIMPAR MEMÓRIA</button>
         <button class="btn-reset" onclick="resetarChave()">TROCAR CHAVE</button>
     </div>
@@ -60,6 +61,13 @@
         } catch(e) {}
     }
     getClima();
+
+    // NOVA FUNÇÃO: VER A MENTE DO JARVIS
+    function verMemoria() {
+        let mem = localStorage.getItem('jarvis_memory');
+        if(mem) alert("MEMÓRIA DO JARVIS:\n\n" + mem);
+        else alert("A mente do Jarvis está vazia.");
+    }
 
     function limparMemoria() {
         if(confirm("Deseja apagar todas as lembranças do Jarvis?")) {
@@ -122,16 +130,17 @@
                     DADOS: Cordeirópolis. Hoje é dia ${dataAtual}, são ${h} e faz ${tempAtual}°C.
                     MEMÓRIA DO GABRIEL: ${memoria}.
 
-                    DIRETRIZES DE PERSONA (CUMPRIMENTO OBRIGATÓRIO):
+                    DIRETRIZES DE PERSONA:
                     - Aja com a personalidade de um mordomo britânico leal e extremamente humano.
-                    - É TERMINANTEMENTE PROIBIDO usar palavras técnicas para justificar sua memória. Nunca use: "banco de dados", "banco de registros", "sistema", "armazenamento", "arquivo", "IA", ou "modelo".
-                    - Finja ter uma mente real.
+                    - É TERMINANTEMENTE PROIBIDO falar "não tenho informações", "banco de dados", "sistema", "armazenamento", ou "IA".
+                    - Finja ter uma mente real e humana.
 
                     REGRAS CRÍTICAS DE AÇÃO:
-                    1. APRENDER: Se o mestre compartilhar um gosto (ex: bolo de chocolate) ou pedir para lembrar algo, gere a tag [APRENDER: fato].
-                    2. RESPOSTA DE MEMÓRIA: Quando você aprender algo novo, você ESTÁ PROIBIDO de explicar o processo. Responda APENAS com uma destas frases: "Anotado, senhor.", "Guardado em minha memória, mestre.", ou "Registrado.". Nada além disso.
-                    3. ESQUECER: Use [ESQUECER: palavra-chave] para apagar algo, e responda apenas "Removido da minha mente, senhor."
-                    4. Seja direto, no máximo 2 frases.
+                    1. LEITURA DE MEMÓRIA (OBRIGATÓRIO): Se o mestre perguntar "Do que eu gosto?", "O que tem pra hoje?" ou testar seus conhecimentos sobre ele, VOCÊ DEVE LER AS INFORMAÇÕES NA [MEMÓRIA DO GABRIEL] acima e responder com base nelas, como se você simplesmente lembrasse disso. Nunca diga que não sabe.
+                    2. APRENDER: Se o mestre compartilhar um gosto (ex: bolo de chocolate) ou pedir para lembrar algo, gere APENAS a tag [APRENDER: fato].
+                    3. RESPOSTA DE GRAVAÇÃO: Ao aprender algo novo, responda APENAS: "Anotado, senhor." ou "Guardado em minha memória." Não explique nada.
+                    4. ESQUECER: Use [ESQUECER: palavra-chave] para apagar, e responda apenas "Removido da minha mente, senhor."
+                    5. Seja direto, no máximo 2 frases.
                     
                     Pergunta: "${pergunta}"` 
                 }] }] })
@@ -178,7 +187,7 @@
         if(!API_KEY) { API_KEY = prompt("Insira sua API KEY:"); localStorage.setItem("GEMINI_API_KEY", API_KEY); }
         bt.classList.add('hidden');
         tools.classList.remove('hidden');
-        falar("Regras de comportamento atualizadas. Pronto para o trabalho, senhor.");
+        falar("Atualização de protocolos concluída. Pronto para o trabalho, senhor.");
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
