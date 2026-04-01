@@ -35,7 +35,7 @@
     <div id="status">SISTEMA EM AGUARDO</div>
     <div id="user-text"></div>
 
-    <button id="btn" class="btn" onclick="boot()">BOOT JARVIS 3.1</button>
+    <button id="btn" class="btn" onclick="boot()">Iniciar JARVIS 3.1</button>
     
     <div id="tools" class="hidden" style="display: flex; gap: 10px;">
         <button class="btn-reset" onclick="verMemoria()">VER MEMÓRIA</button>
@@ -106,7 +106,7 @@
         }
 
         m.onstart = () => { jarvisOcupado = true; st.innerText = "JARVIS FALANDO..."; };
-        m.onend = () => { st.innerText = "NÚCLEO PRONTO"; setTimeout(() => { jarvisOcupado = false; try{reconhecimento.start();}catch(e){} }, 1000); };
+        m.onend = () => { st.innerText = "Diga "Jarvis+Comando" "; setTimeout(() => { jarvisOcupado = false; try{reconhecimento.start();}catch(e){} }, 1000); };
         window.speechSynthesis.speak(m);
     }
 
