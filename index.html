@@ -106,7 +106,7 @@
         }
 
         m.onstart = () => { jarvisOcupado = true; st.innerText = "JARVIS FALANDO..."; };
-        m.onend = () => { st.innerText = "Diga "Jarvis+Comando" "; setTimeout(() => { jarvisOcupado = false; try{reconhecimento.start();}catch(e){} }, 1000); };
+        m.onend = () => { st.innerText = "Diga Jarvis+Comando"; setTimeout(() => { jarvisOcupado = false; try{reconhecimento.start();}catch(e){} }, 1000); };
         window.speechSynthesis.speak(m);
     }
 
