@@ -106,7 +106,7 @@
         }
 
         m.onstart = () => { jarvisOcupado = true; st.innerText = "JARVIS FALANDO..."; };
-        m.onend = () => { st.innerText = "Diga Jarvis+Comando"; setTimeout(() => { jarvisOcupado = false; try{reconhecimento.start();}catch(e){} }, 1000); };
+        m.onend = () => { st.innerText = "'Diga' Jarvis+Comando"; setTimeout(() => { jarvisOcupado = false; try{reconhecimento.start();}catch(e){} }, 1000); };
         window.speechSynthesis.speak(m);
     }
 
@@ -187,7 +187,7 @@
         if(!API_KEY) { API_KEY = prompt("Insira sua API KEY:"); localStorage.setItem("GEMINI_API_KEY", API_KEY); }
         bt.classList.add('hidden');
         tools.classList.remove('hidden');
-        falar("Atualização de protocolos concluída. Pronto para o trabalho, senhor.");
+        falar("Atualização de protocolos concluída. Pronto para o trabalho, Bem vindo senhor.");
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
