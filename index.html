@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-    <title>JARVIS OS - 3.1 LITE ULTIMATE</title>
+    <title>JARVIS OS - 3.1 PRODUCTION</title>
     <style>
         :root { --glow: #00d2ff; --bg: #000; --error: #ff4444; }
         body { background: var(--bg); color: var(--glow); font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; justify-content:center; align-items:center; height:100vh; margin:0; overflow:hidden; }
@@ -12,11 +12,10 @@
         .orb { width: 105px; height: 105px; background: radial-gradient(circle, var(--glow) 0%, #004d7a 100%); border-radius: 50%; box-shadow: 0 0 60px var(--glow), inset 0 0 25px #fff; transition: transform 0.05s ease-out; z-index: 2; }
         .ring { position: absolute; width: 165px; height: 165px; border: 2px solid var(--glow); border-radius: 50%; border-top-color: transparent; border-bottom-color: transparent; animation: spin 3s linear infinite; opacity: 0.4; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        #status { text-transform: uppercase; letter-spacing: 2px; font-size: 10px; margin-top: 35px; text-align: center; color: #fff; min-height: 2em; }
+        #status { text-transform: uppercase; letter-spacing: 1px; font-size: 9px; margin-top: 35px; text-align: center; color: #fff; min-height: 2em; max-width: 80%; }
         #user-text { font-family: monospace; font-size: 13px; color: rgba(0, 210, 255, 0.6); margin-top: 10px; text-align: center; max-width: 85%; font-style: italic; min-height: 1.5em; }
         .btn { padding: 15px 40px; background: transparent; border: 1px solid var(--glow); color: var(--glow); font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 25px; border-radius: 4px; }
         .btn-reset { margin-top: 20px; font-size: 9px; padding: 5px 15px; border-color: #333; color: #555; }
-        .overload-orb { background: radial-gradient(circle, var(--error) 0%, #7a0000 100%) !important; box-shadow: 0 0 60px var(--error) !important; }
     </style>
 </head>
 <body>
@@ -35,11 +34,11 @@
     <div id="status">SISTEMA EM AGUARDO</div>
     <div id="user-text"></div>
 
-    <button id="btn" class="btn" onclick="boot()">BOOT NÚCLEO 500 RPD</button>
+    <button id="btn" class="btn" onclick="boot()">SINCRONIZAR 3.1 LITE</button>
     <button id="btn-reset" class="btn btn-reset" onclick="resetarChave()">RESETAR CHAVE</button>
 
 <script>
-    const orb = document.getElementById('orb'), st = document.getElementById('status'), ut = document.getElementById('user-text'), bt = document.getElementById('btn');
+    const orb = document.getElementById('orb'), st = document.getElementById('status'), ut = document.getElementById('user-text');
     let API_KEY = localStorage.getItem("GEMINI_API_KEY");
     let tempAtual = "20"; 
     let timerSilencio;
@@ -59,35 +58,35 @@
 
     function resetarChave() { localStorage.removeItem("GEMINI_API_KEY"); location.reload(); }
     
-    let jarvisOcupado = false, resfriando = false, reconhecimento;
+    let jarvisOcupado = false, reconhecimento;
 
     function falar(t) {
         window.speechSynthesis.cancel();
         const m = new SpeechSynthesisUtterance(t);
-        m.lang = 'pt-BR'; m.rate = 1.1; m.pitch = 0.9;
+        m.lang = 'pt-BR'; m.rate = 1.0; m.pitch = 0.8;
         m.onstart = () => { jarvisOcupado = true; st.innerText = "JARVIS FALANDO..."; ut.innerText = ""; };
-        m.onend = () => { if(!resfriando) { st.innerText = "NÚCLEO PRONTO"; setTimeout(() => { jarvisOcupado = false; try{reconhecimento.start();}catch(e){} }, 1000); } };
+        m.onend = () => { st.innerText = "NÚCLEO PRONTO"; setTimeout(() => { jarvisOcupado = false; try{reconhecimento.start();}catch(e){} }, 1000); };
         window.speechSynthesis.speak(m);
     }
 
     async function perguntarIA(pergunta) {
-        if (jarvisOcupado || resfriando) return;
+        if (jarvisOcupado) return;
         jarvisOcupado = true;
-        st.innerText = "CONTATANDO NÚCLEO...";
+        st.innerText = "CHAMANDO NÚCLEO 3.1...";
         const h = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         let memoria = localStorage.getItem('jarvis_memory') || "";
 
         try {
-            // USANDO O MODELO FLASH-8B (O QUE TEM A COTA DE 500 RPD)
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${API_KEY}`, {
+            // TENTANDO O ENDEREÇO DE PRODUÇÃO V1 COM O MODELO LATEST
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-3.1-flash-lite:generateContent?key=${API_KEY}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: [{ parts: [{ text: `Você é o JARVIS. Mestre: GABRIEL (Motion Designer). Local: Cordeirópolis (${h}, ${tempAtual}°C). Memória: ${memoria}. IMPORTANTE: Gabriel teve dentista hoje às 14h. Responda em português, natural e sofisticado. Se aprender algo novo use [APRENDER: fato]. Pergunta: "${pergunta}"` }] }] })
+                body: JSON.stringify({ contents: [{ parts: [{ text: `Você é o JARVIS. Mestre: GABRIEL (Motion Designer). Local: Cordeirópolis. Agora são ${h} e faz ${tempAtual}°C. Lembre que ele teve dentista às 14h. Responda em português natural. Memória: ${memoria}. Se aprender algo novo use [APRENDER: fato]. Pergunta: "${pergunta}"` }] }] })
             });
 
             if (!response.ok) {
                 const err = await response.json();
-                st.innerText = "ERRO: " + (err.error.message || "Falha na Chave");
+                st.innerText = "ERRO: " + (err.error.message || "Tente novamente");
                 jarvisOcupado = false;
                 return;
             }
@@ -103,11 +102,10 @@
                 }
             }
             falar(txt);
-        } catch (e) { st.innerText = "FALHA DE REDE"; jarvisOcupado = false; }
+        } catch (e) { st.innerText = "FALHA NA CONEXÃO"; jarvisOcupado = false; }
     }
 
     function forcarReativacao() {
-        if (resfriando) return;
         ut.innerText = "";
         try { reconhecimento.stop(); } catch(e){}
         setTimeout(() => { try { reconhecimento.start(); st.innerText = "OUVINDO..."; jarvisOcupado = false; } catch(e){} }, 500);
@@ -117,7 +115,7 @@
         if(!API_KEY) { API_KEY = prompt("API KEY:"); localStorage.setItem("GEMINI_API_KEY", API_KEY); }
         document.getElementById('btn').classList.add('hidden');
         document.getElementById('btn-reset').classList.add('hidden');
-        falar("Núcleo de alta capacidade sincronizado. Jarvis online para o mestre Gabriel.");
+        falar("Sincronizando núcleo 3.1 de alta capacidade. Jarvis online.");
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
