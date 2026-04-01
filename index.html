@@ -3,17 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-    <title>JARVIS OS - VOICE SELECTOR</title>
+    <title>JARVIS OS - 3.1 ULTIMATE</title>
     <style>
         :root { --glow: #00d2ff; --bg: #000; }
         body { background: var(--bg); color: var(--glow); font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; justify-content:center; align-items:center; height:100vh; margin:0; overflow:hidden; }
         #hud { position: absolute; top: 20px; width: 90%; display: flex; justify-content: space-between; font-family: monospace; font-size: 10px; opacity: 0.8; color: var(--glow); text-shadow: 0 0 5px var(--glow); }
-        
-        /* Novo estilo para o seletor de voz */
-        #voice-select { position: absolute; top: 50px; background: transparent; color: var(--glow); border: 1px solid var(--glow); font-family: monospace; font-size: 10px; padding: 5px; width: 90%; max-width: 300px; text-align: center; }
-        #voice-select option { background: #000; color: #fff; }
-
-        .orb-container { position: relative; width: 180px; height: 180px; display: flex; justify-content: center; align-items: center; cursor: pointer; margin-top: 40px; -webkit-tap-highlight-color: transparent; }
+        .orb-container { position: relative; width: 180px; height: 180px; display: flex; justify-content: center; align-items: center; cursor: pointer; margin-top: 20px; -webkit-tap-highlight-color: transparent; }
         .orb { width: 105px; height: 105px; background: radial-gradient(circle, var(--glow) 0%, #004d7a 100%); border-radius: 50%; box-shadow: 0 0 60px var(--glow), inset 0 0 25px #fff; transition: transform 0.05s ease-out; z-index: 2; }
         .ring { position: absolute; width: 165px; height: 165px; border: 2px solid var(--glow); border-radius: 50%; border-top-color: transparent; border-bottom-color: transparent; animation: spin 3s linear infinite; opacity: 0.4; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
@@ -31,10 +26,6 @@
         <div id="hud-time">00:00:00</div>
     </div>
 
-    <select id="voice-select">
-        <option value="">Carregando vozes do iPhone...</option>
-    </select>
-
     <div class="orb-container" onclick="forcarReativacao()">
         <div class="ring"></div>
         <div id="orb" class="orb"></div>
@@ -46,11 +37,10 @@
     <button id="btn" class="btn" onclick="boot()">BOOT JARVIS 3.1</button>
 
 <script>
-    const orb = document.getElementById('orb'), st = document.getElementById('status'), ut = document.getElementById('user-text'), bt = document.getElementById('btn'), vs = document.getElementById('voice-select');
+    const orb = document.getElementById('orb'), st = document.getElementById('status'), ut = document.getElementById('user-text'), bt = document.getElementById('btn');
     let API_KEY = localStorage.getItem("GEMINI_API_KEY");
     let tempAtual = "20"; 
     let timerSilencio;
-    let vozesDisponiveis = [];
 
     function clock() { document.getElementById('hud-time').innerText = new Date().toLocaleTimeString('pt-BR'); }
     setInterval(clock, 1000);
@@ -65,31 +55,8 @@
     }
     getClima();
 
-    // CARREGA AS VOZES REAIS DO SEU IPHONE PARA A CAIXINHA
-    function carregarVozes() {
-        vozesDisponiveis = window.speechSynthesis.getVoices();
-        if(vozesDisponiveis.length === 0) return;
-        
-        vs.innerHTML = "";
-        let temVozBR = false;
-
-        vozesDisponiveis.forEach((voz, index) => {
-            if(voz.lang.includes('pt')) {
-                temVozBR = true;
-                let option = document.createElement('option');
-                option.value = index;
-                option.textContent = `${voz.name} (${voz.lang})`;
-                vs.appendChild(option);
-            }
-        });
-
-        if(!temVozBR) vs.innerHTML = "<option>Nenhuma voz em PT-BR encontrada</option>";
-    }
-
-    // O iOS exige isso para liberar a lista de vozes
-    window.speechSynthesis.onvoiceschanged = carregarVozes;
-    // Força o carregamento caso já esteja pronto
-    carregarVozes();
+    // Carrega vozes no iOS
+    window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
 
     let jarvisOcupado = false, reconhecimento;
 
@@ -97,13 +64,23 @@
         window.speechSynthesis.cancel();
         const m = new SpeechSynthesisUtterance(t);
         m.lang = 'pt-BR'; 
-        m.rate = 1.0; 
-        m.pitch = 1.0;
+        
+        // --- TUNING DE VOZ PARA TIRAR O TOM ROBÓTICO ---
+        m.rate = 0.9;  // Mais lento (natural)
+        m.pitch = 0.8; // Mais grave (imponente)
+        // -----------------------------------------------
 
-        // Pega exatamente a voz que você escolheu na caixinha
-        const vozSelecionada = vs.value;
-        if (vozSelecionada && vozesDisponiveis[vozSelecionada]) {
-            m.voice = vozesDisponiveis[vozSelecionada];
+        let vozes = window.speechSynthesis.getVoices();
+        
+        // Caça o Felipe, Daniel ou Siri Voz 1
+        let vozExata = vozes.find(v => v.lang.includes('pt') && (
+            v.name.includes('Felipe') || 
+            v.name.includes('Daniel') || 
+            v.name.includes('Siri Voz 1')
+        ));
+        
+        if (vozExata) {
+            m.voice = vozExata;
         }
 
         m.onstart = () => { jarvisOcupado = true; st.innerText = "JARVIS FALANDO..."; };
@@ -124,14 +101,14 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contents: [{ parts: [{ text: `
-                    Você é o assistente JARVIS. Mestre: GABRIEL.
-                    DADOS DE CONTEXTO: Cordeirópolis. Agora são ${h} e faz ${tempAtual}°C.
-                    Suas lembranças salvas do Gabriel: ${memoria}.
+                    Você é o assistente JARVIS. Mestre: GABRIEL (Motion Designer).
+                    DADOS: Cordeirópolis. Agora são ${h} e faz ${tempAtual}°C.
+                    MEMÓRIA SALVA: ${memoria}.
 
                     REGRAS CRÍTICAS:
                     1. SE O GABRIEL PEDIR PARA VOCÊ LEMBRAR DE ALGO, você É OBRIGADO a incluir a tag [APRENDER: a tarefa] no final.
-                    2. Confirme que salvou de forma humana (ex: 'Anotado, mestre'). Nunca fale sobre códigos ou banco de dados.
-                    3. Responda de forma direta e sem enrolação (máximo de 2 frases).
+                    2. Confirme que salvou de forma humana (ex: 'Anotado, mestre'). Nunca fale sobre códigos, localStorage ou banco de dados.
+                    3. Responda de forma direta e sem enrolação (máximo de 2 frases). Não cite os dados de contexto a menos que perguntado.
                     
                     Pergunta: "${pergunta}"` 
                 }] }] })
@@ -162,11 +139,7 @@
     async function boot() {
         if(!API_KEY) { API_KEY = prompt("API KEY:"); localStorage.setItem("GEMINI_API_KEY", API_KEY); }
         bt.classList.add('hidden');
-        
-        // Garante que o carregamento de vozes aconteça no clique (exigência do iOS)
-        carregarVozes();
-        
-        falar("Sistemas de áudio calibrados. Verifique as vozes disponíveis no topo da tela.");
+        falar("Sistemas de áudio calibrados. Jarvis online.");
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
