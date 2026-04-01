@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-    <title>JARVIS OS - 3.1 MEMORY FIX</title>
+    <title>JARVIS OS - 3.1 ULTIMATE EDITION</title>
     <style>
         :root { --glow: #00d2ff; --bg: #000; }
         body { background: var(--bg); color: var(--glow); font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; justify-content:center; align-items:center; height:100vh; margin:0; overflow:hidden; }
@@ -57,10 +57,28 @@
 
     let jarvisOcupado = false, reconhecimento;
 
+    // Carrega as vozes no iOS antes de falar
+    window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
+
     function falar(t) {
         window.speechSynthesis.cancel();
         const m = new SpeechSynthesisUtterance(t);
-        m.lang = 'pt-BR'; m.rate = 1.0; m.pitch = 0.8;
+        m.lang = 'pt-BR'; 
+        m.rate = 1.0; 
+        m.pitch = 1.0; // Mantido em 1.0 para não distorcer a voz no iPhone
+
+        // CAÇADOR DE VOZ MASCULINA
+        let vozes = window.speechSynthesis.getVoices();
+        let vozExata = vozes.find(v => v.lang.includes('pt') && (
+            v.name.includes('Siri Voz 1') || 
+            (v.name.includes('Siri') && v.name.includes('1')) ||
+            v.name.includes('Daniel')
+        ));
+        
+        if (vozExata) {
+            m.voice = vozExata;
+        }
+
         m.onstart = () => { jarvisOcupado = true; st.innerText = "JARVIS FALANDO..."; };
         m.onend = () => { st.innerText = "NÚCLEO PRONTO"; setTimeout(() => { jarvisOcupado = false; try{reconhecimento.start();}catch(e){} }, 1000); };
         window.speechSynthesis.speak(m);
@@ -69,10 +87,9 @@
     async function perguntarIA(pergunta) {
         if (jarvisOcupado) return;
         jarvisOcupado = true;
-        st.innerText = "SINCRO...";
+        st.innerText = "PROCESSANDO...";
         const h = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         
-        // RECUPERA A MEMÓRIA LIMPA
         let memoria = localStorage.getItem('jarvis_memory') || "Ainda não há tarefas ou dados salvos.";
 
         try {
@@ -87,8 +104,8 @@
                     - Suas lembranças e tarefas salvas do Gabriel: ${memoria}.
 
                     REGRAS CRÍTICAS DE MEMÓRIA E COMPORTAMENTO:
-                    1. SE O GABRIEL PEDIR PARA VOCÊ LEMBRAR DE ALGO (ex: fazer estratégia de tráfego, comprar pão), você É OBRIGADO a incluir a tag [APRENDER: a tarefa ou fato] no final da sua resposta.
-                    2. Responda confirmando que salvou de forma humana (ex: 'Anotado, mestre' ou 'Guardado na minha memória'). Nunca fale sobre códigos, localStorage ou banco de dados.
+                    1. SE O GABRIEL PEDIR PARA VOCÊ LEMBRAR DE ALGO (ex: fazer estratégia de tráfego), você É OBRIGADO a incluir a tag [APRENDER: a tarefa ou fato] no final da sua resposta.
+                    2. Responda confirmando que salvou de forma humana e sofisticada. Nunca fale sobre códigos, localStorage ou banco de dados.
                     3. Responda de forma direta. Sem enrolação e máximo de 2 frases.
                     
                     Pergunta: "${pergunta}"` 
@@ -98,16 +115,12 @@
             const data = await response.json();
             let txt = data.candidates[0].content.parts[0].text;
 
-            // SISTEMA DE GRAVAÇÃO ATUALIZADO
             if (txt.includes("[APRENDER:")) {
                 const fato = txt.match(/\[APRENDER:\s*(.*?)\]/);
                 if (fato) {
-                    // Adiciona a nova tarefa na memória existente
                     let memoriaAtual = localStorage.getItem('jarvis_memory') || "";
                     let novaMemoria = memoriaAtual ? memoriaAtual + " | " + fato[1] : fato[1];
                     localStorage.setItem('jarvis_memory', novaMemoria);
-                    
-                    // Remove a tag da fala para não parecer um robô
                     txt = txt.replace(/\[APRENDER:.*?\]/g, "").trim();
                 }
             }
@@ -124,7 +137,7 @@
     async function boot() {
         if(!API_KEY) { API_KEY = prompt("API KEY:"); localStorage.setItem("GEMINI_API_KEY", API_KEY); }
         bt.classList.add('hidden');
-        falar("Sistemas atualizados. Memória de longo prazo cem por cento funcional.");
+        falar("Sistemas de áudio e memória calibrados. Jarvis online.");
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -152,6 +165,7 @@
                 
                 if (transcript.includes("jarvis") && !jarvisOcupado) {
                     clearTimeout(timerSilencio);
+                    // 2 SEGUNDOS DE TRAVA DE SILÊNCIO
                     timerSilencio = setTimeout(() => {
                         reconhecimento.stop();
                         const p = transcript.split("jarvis").pop().trim();
@@ -162,7 +176,7 @@
             };
             reconhecimento.onend = () => { if(!jarvisOcupado) reconhecimento.start(); };
             reconhecimento.start();
-        } catch (err) { st.innerText = "FALHA NO SENSOR"; }
+        } catch (err) { st.innerText = "FALHA NO MICROFONE"; }
     }
 </script>
 </body>
