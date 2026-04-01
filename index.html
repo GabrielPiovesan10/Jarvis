@@ -15,6 +15,7 @@
         #status { text-transform: uppercase; letter-spacing: 2px; font-size: 10px; margin-top: 35px; text-align: center; color: #fff; min-height: 2em; }
         #user-text { font-family: monospace; font-size: 13px; color: rgba(0, 210, 255, 0.6); margin-top: 10px; text-align: center; max-width: 85%; font-style: italic; min-height: 1.5em; }
         .btn { padding: 15px 40px; background: transparent; border: 1px solid var(--glow); color: var(--glow); font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 25px; border-radius: 4px; }
+        .btn-reset { margin-top: 20px; font-size: 9px; padding: 5px 15px; border-color: #333; color: #555; cursor: pointer; }
         .hidden { display: none; }
     </style>
 </head>
@@ -35,9 +36,14 @@
     <div id="user-text"></div>
 
     <button id="btn" class="btn" onclick="boot()">BOOT JARVIS 3.1</button>
+    
+    <div id="tools" class="hidden" style="display: flex; gap: 10px;">
+        <button class="btn-reset" onclick="limparMemoria()">LIMPAR MEMÓRIA</button>
+        <button class="btn-reset" onclick="resetarChave()">TROCAR CHAVE</button>
+    </div>
 
 <script>
-    const orb = document.getElementById('orb'), st = document.getElementById('status'), ut = document.getElementById('user-text'), bt = document.getElementById('btn');
+    const orb = document.getElementById('orb'), st = document.getElementById('status'), ut = document.getElementById('user-text'), bt = document.getElementById('btn'), tools = document.getElementById('tools');
     let API_KEY = localStorage.getItem("GEMINI_API_KEY");
     let tempAtual = "20"; 
     let timerSilencio;
@@ -55,6 +61,18 @@
     }
     getClima();
 
+    function limparMemoria() {
+        if(confirm("Deseja apagar todas as lembranças do Jarvis?")) {
+            localStorage.removeItem('jarvis_memory');
+            falar("Memória apagada. Sistema limpo, mestre.");
+        }
+    }
+
+    function resetarChave() {
+        localStorage.removeItem("GEMINI_API_KEY");
+        location.reload();
+    }
+
     // Carrega vozes no iOS
     window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
 
@@ -65,10 +83,9 @@
         const m = new SpeechSynthesisUtterance(t);
         m.lang = 'pt-BR'; 
         
-        // --- TUNING DE VOZ PARA TIRAR O TOM ROBÓTICO ---
+        // TUNING DE VOZ PARA TIRAR O TOM ROBÓTICO
         m.rate = 0.9;  // Mais lento (natural)
         m.pitch = 0.8; // Mais grave (imponente)
-        // -----------------------------------------------
 
         let vozes = window.speechSynthesis.getVoices();
         
@@ -94,7 +111,7 @@
         st.innerText = "PROCESSANDO...";
         const h = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         
-        let memoria = localStorage.getItem('jarvis_memory') || "Ainda não há tarefas salvas.";
+        let memoria = localStorage.getItem('jarvis_memory') || "";
 
         try {
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${API_KEY}`, {
@@ -106,9 +123,10 @@
                     MEMÓRIA SALVA: ${memoria}.
 
                     REGRAS CRÍTICAS:
-                    1. SE O GABRIEL PEDIR PARA VOCÊ LEMBRAR DE ALGO, você É OBRIGADO a incluir a tag [APRENDER: a tarefa] no final.
-                    2. Confirme que salvou de forma humana (ex: 'Anotado, mestre'). Nunca fale sobre códigos, localStorage ou banco de dados.
-                    3. Responda de forma direta e sem enrolação (máximo de 2 frases). Não cite os dados de contexto a menos que perguntado.
+                    1. APRENDER: Se o Gabriel pedir para você lembrar, salvar ou anotar algo, você É OBRIGADO a incluir a tag oculta [APRENDER: a tarefa] no final da resposta.
+                    2. ESQUECER: Se o Gabriel pedir para apagar, esquecer ou concluir uma tarefa, você É OBRIGADO a incluir a tag oculta [ESQUECER: palavra-chave] no final da resposta.
+                    3. Confirme a ação de forma humana e direta (ex: 'Anotado, mestre' ou 'Removido da minha memória'). Nunca fale sobre códigos, localStorage ou tags.
+                    4. Responda direto ao ponto, máximo de 2 frases. Não cite hora ou clima se não for perguntado.
                     
                     Pergunta: "${pergunta}"` 
                 }] }] })
@@ -117,6 +135,7 @@
             const data = await response.json();
             let txt = data.candidates[0].content.parts[0].text;
 
+            // SISTEMA DE GRAVAÇÃO
             if (txt.includes("[APRENDER:")) {
                 const fato = txt.match(/\[APRENDER:\s*(.*?)\]/);
                 if (fato) {
@@ -126,6 +145,22 @@
                     txt = txt.replace(/\[APRENDER:.*?\]/g, "").trim();
                 }
             }
+
+            // SISTEMA DE EXCLUSÃO
+            if (txt.includes("[ESQUECER:")) {
+                const fatoApagar = txt.match(/\[ESQUECER:\s*(.*?)\]/);
+                if (fatoApagar) {
+                    let memoriaAtual = localStorage.getItem('jarvis_memory') || "";
+                    let palavraChave = fatoApagar[1].toLowerCase();
+                    
+                    let memoriasArray = memoriaAtual.split(" | ");
+                    let novaMemoriaArray = memoriasArray.filter(item => !item.toLowerCase().includes(palavraChave));
+                    
+                    localStorage.setItem('jarvis_memory', novaMemoriaArray.join(" | ")).trim();
+                    txt = txt.replace(/\[ESQUECER:.*?\]/g, "").trim();
+                }
+            }
+
             falar(txt);
         } catch (e) { st.innerText = "ERRO NO NÚCLEO"; jarvisOcupado = false; }
     }
@@ -137,9 +172,10 @@
     }
 
     async function boot() {
-        if(!API_KEY) { API_KEY = prompt("API KEY:"); localStorage.setItem("GEMINI_API_KEY", API_KEY); }
+        if(!API_KEY) { API_KEY = prompt("Insira sua API KEY:"); localStorage.setItem("GEMINI_API_KEY", API_KEY); }
         bt.classList.add('hidden');
-        falar("Sistemas de áudio calibrados. Jarvis online.");
+        tools.classList.remove('hidden');
+        falar("Sistemas de memória e áudio online. Pronto para o trabalho, mestre.");
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
