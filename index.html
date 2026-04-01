@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-    <title>JARVIS OS - 3.1 LITE FIX</title>
+    <title>JARVIS OS - 3.1 FINAL FIX</title>
     <style>
         :root { --glow: #00d2ff; --bg: #000; }
         body { background: var(--bg); color: var(--glow); font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; justify-content:center; align-items:center; height:100vh; margin:0; overflow:hidden; }
@@ -15,7 +15,6 @@
         #status { text-transform: uppercase; letter-spacing: 2px; font-size: 10px; margin-top: 35px; text-align: center; color: #fff; min-height: 2em; }
         #user-text { font-family: monospace; font-size: 13px; color: rgba(0, 210, 255, 0.6); margin-top: 10px; text-align: center; max-width: 85%; font-style: italic; min-height: 1.5em; }
         .btn { padding: 15px 40px; background: transparent; border: 1px solid var(--glow); color: var(--glow); font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 25px; border-radius: 4px; }
-        .btn-reset { margin-top: 20px; font-size: 9px; padding: 5px 15px; border-color: #333; color: #555; }
         .hidden { display: none; }
     </style>
 </head>
@@ -35,8 +34,7 @@
     <div id="status">SISTEMA EM AGUARDO</div>
     <div id="user-text"></div>
 
-    <button id="btn" class="btn" onclick="boot()">INICIALIZAR NÚCLEO 3.1</button>
-    <button id="btn-reset" class="btn btn-reset" onclick="resetarChave()">RESETAR CHAVE</button>
+    <button id="btn" class="btn" onclick="boot()">INICIALIZAR JARVIS</button>
 
 <script>
     const orb = document.getElementById('orb'), st = document.getElementById('status'), ut = document.getElementById('user-text'), bt = document.getElementById('btn');
@@ -57,8 +55,6 @@
     }
     getClima();
 
-    function resetarChave() { localStorage.removeItem("GEMINI_API_KEY"); location.reload(); }
-    
     let jarvisOcupado = false, reconhecimento;
 
     function falar(t) {
@@ -73,7 +69,7 @@
     async function perguntarIA(pergunta) {
         if (jarvisOcupado) return;
         jarvisOcupado = true;
-        st.innerText = "PROCESSANDO...";
+        st.innerText = "PENSANDO...";
         const h = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         let memoria = localStorage.getItem('jarvis_memory') || "";
 
@@ -82,37 +78,27 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contents: [{ parts: [{ text: `
-                    Você é o JARVIS, assistente de GABRIEL (Motion Designer).
+                    Você é o JARVIS. Seu mestre é o GABRIEL.
                     
-                    CONTEXTO SILENCIOSO (NÃO cite isso a menos que perguntado):
-                    - Local: Cordeirópolis. Agora são ${h} e faz ${tempAtual}°C.
+                    CONHECIMENTO (Use APENAS se perguntado diretamente):
+                    - Você está em Cordeirópolis. Agora são ${h} e faz ${tempAtual}°C.
                     - Gabriel teve dentista hoje às 14h.
-                    - Memória: ${memoria}.
+                    - Gabriel é Motion Designer.
+                    - Memória salva: ${memoria}.
 
-                    REGRAS DE RESPOSTA:
-                    1. Responda em Português do Brasil.
-                    2. Seja natural e sofisticado, mas CONCISO. Máximo 2 frases.
-                    3. Responda DIRETAMENTE à pergunta do Gabriel.
-                    4. NÃO inicie a frase com o horário ou clima.
+                    REGRAS CRÍTICAS:
+                    1. NUNCA inicie sua fala com a hora, o clima ou o dentista.
+                    2. Responda estritamente ao que foi perguntado de forma natural e breve (máximo 2 frases).
+                    3. Não mencione o compromisso do dentista a menos que o Gabriel fale sobre o dia dele ou saúde bucal.
                     
                     Pergunta do Gabriel: "${pergunta}"` 
                 }] }] })
             });
 
-            if (!response.ok) { st.innerText = "ERRO DE CONEXÃO"; jarvisOcupado = false; return; }
-
             const data = await response.json();
             let txt = data.candidates[0].content.parts[0].text;
-
-            if (txt.includes("[APRENDER:")) {
-                const fato = txt.match(/\[APRENDER:\s*(.*?)\]/);
-                if (fato) {
-                    localStorage.setItem('jarvis_memory', (localStorage.getItem('jarvis_memory') || "") + " | " + fato[1]);
-                    txt = txt.replace(/\[APRENDER:.*?\]/, "");
-                }
-            }
             falar(txt);
-        } catch (e) { st.innerText = "FALHA NO NÚCLEO"; jarvisOcupado = false; }
+        } catch (e) { st.innerText = "ERRO NO NÚCLEO"; jarvisOcupado = false; }
     }
 
     function forcarReativacao() {
@@ -124,8 +110,7 @@
     async function boot() {
         if(!API_KEY) { API_KEY = prompt("API KEY:"); localStorage.setItem("GEMINI_API_KEY", API_KEY); }
         bt.classList.add('hidden');
-        document.getElementById('btn-reset').classList.add('hidden');
-        falar("Sistemas calibrados. Jarvis online em Cordeirópolis.");
+        falar("Sistemas prontos, mestre.");
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -150,16 +135,16 @@
             reconhecimento.onresult = (e) => {
                 const transcript = e.results[e.results.length - 1][0].transcript.toLowerCase();
                 ut.innerText = `"${transcript}"`;
+                
                 if (transcript.includes("jarvis") && !jarvisOcupado) {
                     clearTimeout(timerSilencio);
+                    // Espera 2 segundos de silêncio para garantir que você terminou
                     timerSilencio = setTimeout(() => {
                         reconhecimento.stop();
-                        // Pega apenas o que vem depois da palavra "jarvis"
-                        const index = transcript.indexOf("jarvis");
-                        const perguntaReal = transcript.substring(index + 6).trim();
-                        if(perguntaReal.length > 1) perguntarIA(perguntaReal);
-                        else { st.innerText = "PODE FALAR..."; try{reconhecimento.start();}catch(e){} }
-                    }, 1200);
+                        const p = transcript.split("jarvis").pop().trim();
+                        if(p.length > 1) perguntarIA(p);
+                        else { try{reconhecimento.start();}catch(e){} }
+                    }, 2000); 
                 }
             };
             reconhecimento.onend = () => { if(!jarvisOcupado) reconhecimento.start(); };
