@@ -6,21 +6,27 @@
     <title>JARVIS OS - GABRIEL 2.5 LITE</title>
     <style>
         :root { --glow: #00d2ff; --bg: #000; --error: #ff4444; }
-        body { background: var(--bg); color: var(--glow); font-family: sans-serif; display: flex; flex-direction: column; justify-content:center; align-items:center; height:100vh; margin:0; overflow:hidden; }
+        body { background: var(--bg); color: var(--glow); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; flex-direction: column; justify-content:center; align-items:center; height:100vh; margin:0; overflow:hidden; }
         
-        /* HUD DE SENSORES NO TOPO */
-        #hud { position: absolute; top: 15px; width: 90%; display: flex; justify-content: space-between; font-family: monospace; font-size: 10px; opacity: 0.7; letter-spacing: 1px; }
+        /* HUD DE SENSORES */
+        #hud { position: absolute; top: 20px; width: 90%; display: flex; justify-content: space-between; font-family: monospace; font-size: 10px; opacity: 0.8; letter-spacing: 1px; text-shadow: 0 0 5px var(--glow); }
         
+        /* INTERFACE CENTRAL */
         .orb-container { position: relative; width: 180px; height: 180px; display: flex; justify-content: center; align-items: center; cursor: pointer; -webkit-tap-highlight-color: transparent; }
         .orb { width: 105px; height: 105px; background: radial-gradient(circle, var(--glow) 0%, #004d7a 100%); border-radius: 50%; box-shadow: 0 0 60px var(--glow), inset 0 0 25px #fff; transition: transform 0.05s ease-out; z-index: 2; }
-        .ring { position: absolute; width: 165px; height: 165px; border: 2px solid var(--glow); border-radius: 50%; border-top-color: transparent; border-bottom-color: transparent; animation: spin 3s linear infinite; opacity: 0.6; }
+        .ring { position: absolute; width: 165px; height: 165px; border: 2px solid var(--glow); border-radius: 50%; border-top-color: transparent; border-bottom-color: transparent; animation: spin 3s linear infinite; opacity: 0.4; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
         
-        #status { text-transform: uppercase; letter-spacing: 2px; font-size: 10px; margin-top: 35px; text-align: center; color: #fff; min-height: 2em; }
-        #user-text { font-family: monospace; font-size: 13px; color: rgba(0, 210, 255, 0.6); margin-top: 10px; text-align: center; max-width: 80%; font-style: italic; }
+        /* STATUS E TEXTO */
+        #status { text-transform: uppercase; letter-spacing: 2px; font-size: 10px; margin-top: 35px; text-align: center; color: #fff; min-height: 2em; opacity: 0.9; }
+        #user-text { font-family: monospace; font-size: 13px; color: rgba(0, 210, 255, 0.6); margin-top: 10px; text-align: center; max-width: 85%; font-style: italic; min-height: 1.5em; }
 
-        .btn { padding: 15px 40px; background: transparent; border: 1px solid var(--glow); color: var(--glow); font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 20px; border-radius: 4px; }
-        .btn-reset { margin-top: 15px; font-size: 9px; padding: 5px 15px; border-color: #333; color: #555; border-style: solid; border-width: 1px; }
+        /* BOTÕES */
+        .btn { padding: 15px 40px; background: transparent; border: 1px solid var(--glow); color: var(--glow); font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 25px; border-radius: 4px; transition: 0.3s; }
+        .btn:active { background: var(--glow); color: #000; }
+        .btn-reset { margin-top: 20px; font-size: 9px; padding: 5px 15px; border-color: #333; color: #555; }
+        
+        /* ESTADOS DE ERRO */
         .overload-orb { background: radial-gradient(circle, var(--error) 0%, #7a0000 100%) !important; box-shadow: 0 0 60px var(--error) !important; }
         .hidden { display: none; }
     </style>
@@ -41,41 +47,47 @@
     <div id="status">SISTEMA EM AGUARDO</div>
     <div id="user-text"></div>
 
-    <button id="btn" class="btn" onclick="boot()">INICIALIZAR 2.5 LITE</button>
+    <button id="btn" class="btn" onclick="boot()">INICIALIZAR NÚCLEO 2.5</button>
     <button id="btn-reset" class="btn btn-reset" onclick="resetarChave()">RESETAR CHAVE</button>
 
 <script>
     const orb = document.getElementById('orb'), st = document.getElementById('status'), ut = document.getElementById('user-text'), bt = document.getElementById('btn'), br = document.getElementById('btn-reset');
     let API_KEY = localStorage.getItem("GEMINI_API_KEY");
-    let tempAtual = "--";
+    let tempAtual = "20"; 
 
-    // ATUALIZAÇÃO DO RELÓGIO HUD
+    // 1. RELÓGIO HUD
     function clock() {
         const agora = new Date();
         document.getElementById('hud-time').innerText = agora.toLocaleTimeString('pt-BR');
     }
     setInterval(clock, 1000);
 
-    // BUSCA CLIMA REAL
+    // 2. CLIMA REAL
     async function getClima() {
         try {
             const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=-22.4806&longitude=-47.4522&current_weather=true`);
             const data = await res.json();
             tempAtual = Math.round(data.current_weather.temperature);
             document.getElementById('hud-temp').innerText = tempAtual + "°C";
-        } catch(e) { console.error("Erro clima"); }
+        } catch(e) { console.error("Falha no sensor de clima."); }
     }
     getClima();
-    setInterval(getClima, 300000); // Atualiza a cada 5 min
 
     function resetarChave() { localStorage.removeItem("GEMINI_API_KEY"); location.reload(); }
     
     let jarvisOcupado = false, resfriando = false, reconhecimento;
 
+    // 3. SINTETIZADOR DE VOZ (PERSONALIDADE)
     function falar(t) {
         window.speechSynthesis.cancel();
         const m = new SpeechSynthesisUtterance(t);
-        m.lang = 'pt-BR'; m.rate = 1.0;
+        const voices = window.speechSynthesis.getVoices();
+        // Tenta encontrar uma voz masculina/Daniel
+        const vMasc = voices.find(v => v.name.includes('Daniel') || v.name.includes('Google português do Brasil'));
+        if (vMasc) m.voice = vMasc;
+        
+        m.lang = 'pt-BR'; m.rate = 1.0; m.pitch = 0.8; // Voz levemente mais grave e sofisticada
+        
         m.onstart = () => { jarvisOcupado = true; st.innerText = "JARVIS FALANDO..."; ut.innerText = ""; };
         m.onend = () => { 
             if (!resfriando) {
@@ -85,50 +97,42 @@
         };
         window.speechSynthesis.speak(m);
     }
+
+    // 4. CÉREBRO (API GEMINI 2.5 FLASH LITE)
+    async function perguntarIA(pergunta) {
+        if (jarvisOcupado || resfriando) return;
+        jarvisOcupado = true;
+        st.innerText = "SINCRONIZANDO...";
+        const agora = new Date();
+        const h = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
         try {
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${API_KEY}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    contents: [{ 
-                        parts: [{ 
-                            text: `Você é o JARVIS, a IA pessoal e sofisticada do mestre GABRIEL. 
-                            
-                            PERFIL DO MESTRE: Gabriel é Motion Designer em Cordeirópolis. Ele entende de tecnologia, gosta de perfumes marcantes e carros como Porsche e Ferrari, mas roda no dia a dia com sua fiel Pop 110. 
-                            CONTEXTO ATUAL: São ${h} e faz ${tempAtual}°C em Cordeirópolis. O mestre teve um compromisso no dentista às 14h hoje, então seja atencioso com isso.
-
-                            PERSONALIDADE: 
-                            1. Fale de forma natural e fluida, como uma pessoa real conversando. 
-                            2. Tenha um tom prestativo, inteligente e levemente sarcástico/britânico.
-                            3. Não seja econômico demais (como um robô), mas também não faça discursos gigantes. 
-                            4. Use o nome dele ("Gabriel" ou "Mestre") ocasionalmente.
-                            
-                            PERGUNTA: "${pergunta}"` 
-                        }] 
-                    }] 
-                })
+                body: JSON.stringify({ contents: [{ parts: [{ text: `
+                    Você é o JARVIS, a IA sofisticada do mestre GABRIEL. 
+                    PERFIL: Gabriel é Motion Designer de Cordeirópolis. Gosta de tecnologia e carros (Porsche, Ferrari), mas usa uma Pop 110. Hoje ele teve dentista às 14h.
+                    DADOS: Agora são exatamente ${h} e faz ${tempAtual}°C em Cordeirópolis. 
+                    INSTRUÇÃO: Responda de forma fluida, natural e inteligente. Não seja robótico nem curto demais. Tenha personalidade, seja prestativo e educado. 
+                    Pergunta: "${pergunta}"` 
+                }] }] })
             });
 
-        
             if (response.status === 429) {
-                resfriando = true; st.innerText = "RESFRIANDO...";
+                resfriando = true; st.innerText = "RESFRIANDO (10 RPM)...";
                 orb.classList.add('overload-orb');
-                falar("Mestre, sinto muito, mas meu núcleo de processamento atingiu o limite. Preciso de sessenta segundos para recalibrar.");
+                falar("Sinto muito, mestre. Meu núcleo de processamento excedeu o limite. Por favor, aguarde um minuto para o resfriamento.");
                 setTimeout(() => { orb.classList.remove('overload-orb'); resfriando = false; jarvisOcupado = false; st.innerText = "ESTÁVEL."; }, 60000);
                 return;
             }
 
             const data = await response.json();
-            const respostaTexto = data.candidates[0].content.parts[0].text;
-            falar(respostaTexto);
-            
-        } catch (e) { 
-            st.innerText = "ERRO NO NÚCLEO"; 
-            jarvisOcupado = false; 
-        }
+            falar(data.candidates[0].content.parts[0].text);
+        } catch (e) { st.innerText = "ERRO NO NÚCLEO"; jarvisOcupado = false; }
     }
 
-
+    // 5. REATIVAÇÃO MANUAL
     function forcarReativacao() {
         if (resfriando) return;
         ut.innerText = "";
@@ -136,10 +140,11 @@
         setTimeout(() => { try { reconhecimento.start(); st.innerText = "OUVINDO..."; jarvisOcupado = false; } catch(e){} }, 500);
     }
 
+    // 6. INICIALIZAÇÃO E MICROFONE
     async function boot() {
-        if(!API_KEY) { API_KEY = prompt("Insira a chave:"); localStorage.setItem("GEMINI_API_KEY", API_KEY); }
+        if(!API_KEY) { API_KEY = prompt("Insira a sua API KEY:"); if(API_KEY) localStorage.setItem("GEMINI_API_KEY", API_KEY); }
         bt.classList.add('hidden'); br.classList.add('hidden');
-        falar("Protocolos de precisão ativos.");
+        falar("Protocolos de sistema ativados. Jarvis online e operante, mestre Gabriel.");
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -172,7 +177,7 @@
             };
             reconhecimento.onend = () => { if(!jarvisOcupado && !resfriando) reconhecimento.start(); };
             reconhecimento.start();
-        } catch (err) { st.innerText = "ERRO NO MICROFONE"; }
+        } catch (err) { st.innerText = "FALHA NO SENSOR DE ÁUDIO"; }
     }
 </script>
 </body>
