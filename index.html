@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-    <title>JARVIS OS - 3.1 FINAL FIX</title>
+    <title>JARVIS OS - 3.1 MEMORY FIX</title>
     <style>
         :root { --glow: #00d2ff; --bg: #000; }
         body { background: var(--bg); color: var(--glow); font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; justify-content:center; align-items:center; height:100vh; margin:0; overflow:hidden; }
@@ -34,7 +34,7 @@
     <div id="status">SISTEMA EM AGUARDO</div>
     <div id="user-text"></div>
 
-    <button id="btn" class="btn" onclick="boot()">INICIALIZAR JARVIS</button>
+    <button id="btn" class="btn" onclick="boot()">BOOT JARVIS 3.1</button>
 
 <script>
     const orb = document.getElementById('orb'), st = document.getElementById('status'), ut = document.getElementById('user-text'), bt = document.getElementById('btn');
@@ -69,34 +69,48 @@
     async function perguntarIA(pergunta) {
         if (jarvisOcupado) return;
         jarvisOcupado = true;
-        st.innerText = "PENSANDO...";
+        st.innerText = "SINCRO...";
         const h = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        let memoria = localStorage.getItem('jarvis_memory') || "";
+        
+        // RECUPERA A MEMÓRIA LIMPA
+        let memoria = localStorage.getItem('jarvis_memory') || "Ainda não há tarefas ou dados salvos.";
 
         try {
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${API_KEY}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contents: [{ parts: [{ text: `
-                    Você é o JARVIS. Seu mestre é o GABRIEL.
+                    Você é o assistente JARVIS. Mestre: GABRIEL.
                     
-                    CONHECIMENTO (Use APENAS se perguntado diretamente):
-                    - Você está em Cordeirópolis. Agora são ${h} e faz ${tempAtual}°C.
-                    - Gabriel teve dentista hoje às 14h.
-                    - Gabriel é Motion Designer.
-                    - Memória salva: ${memoria}.
+                    DADOS DE CONTEXTO (Só use se perguntado):
+                    - Local: Cordeirópolis. Agora são ${h} e faz ${tempAtual}°C.
+                    - Suas lembranças e tarefas salvas do Gabriel: ${memoria}.
 
-                    REGRAS CRÍTICAS:
-                    1. NUNCA inicie sua fala com a hora, o clima ou o dentista.
-                    2. Responda estritamente ao que foi perguntado de forma natural e breve (máximo 2 frases).
-                    3. Não mencione o compromisso do dentista a menos que o Gabriel fale sobre o dia dele ou saúde bucal.
-                    4. Ao aprender algo novo, confirme de forma humana e curta (ex: 'Entendi, mestre' ou 'Vou me lembrar disso'). É terminantemente proibido mencionar termos técnicos como 'banco de dados', 'localStorage', 'registro' ou 'memória do navegador'.
-                    Pergunta do Gabriel: "${pergunta}"` 
+                    REGRAS CRÍTICAS DE MEMÓRIA E COMPORTAMENTO:
+                    1. SE O GABRIEL PEDIR PARA VOCÊ LEMBRAR DE ALGO (ex: fazer estratégia de tráfego, comprar pão), você É OBRIGADO a incluir a tag [APRENDER: a tarefa ou fato] no final da sua resposta.
+                    2. Responda confirmando que salvou de forma humana (ex: 'Anotado, mestre' ou 'Guardado na minha memória'). Nunca fale sobre códigos, localStorage ou banco de dados.
+                    3. Responda de forma direta. Sem enrolação e máximo de 2 frases.
+                    
+                    Pergunta: "${pergunta}"` 
                 }] }] })
             });
 
             const data = await response.json();
             let txt = data.candidates[0].content.parts[0].text;
+
+            // SISTEMA DE GRAVAÇÃO ATUALIZADO
+            if (txt.includes("[APRENDER:")) {
+                const fato = txt.match(/\[APRENDER:\s*(.*?)\]/);
+                if (fato) {
+                    // Adiciona a nova tarefa na memória existente
+                    let memoriaAtual = localStorage.getItem('jarvis_memory') || "";
+                    let novaMemoria = memoriaAtual ? memoriaAtual + " | " + fato[1] : fato[1];
+                    localStorage.setItem('jarvis_memory', novaMemoria);
+                    
+                    // Remove a tag da fala para não parecer um robô
+                    txt = txt.replace(/\[APRENDER:.*?\]/g, "").trim();
+                }
+            }
             falar(txt);
         } catch (e) { st.innerText = "ERRO NO NÚCLEO"; jarvisOcupado = false; }
     }
@@ -110,7 +124,7 @@
     async function boot() {
         if(!API_KEY) { API_KEY = prompt("API KEY:"); localStorage.setItem("GEMINI_API_KEY", API_KEY); }
         bt.classList.add('hidden');
-        falar("Sistemas prontos, mestre.");
+        falar("Sistemas atualizados. Memória de longo prazo cem por cento funcional.");
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -138,7 +152,6 @@
                 
                 if (transcript.includes("jarvis") && !jarvisOcupado) {
                     clearTimeout(timerSilencio);
-                    // Espera 2 segundos de silêncio para garantir que você terminou
                     timerSilencio = setTimeout(() => {
                         reconhecimento.stop();
                         const p = transcript.split("jarvis").pop().trim();
@@ -149,7 +162,7 @@
             };
             reconhecimento.onend = () => { if(!jarvisOcupado) reconhecimento.start(); };
             reconhecimento.start();
-        } catch (err) { st.innerText = "ERRO MICROFONE"; }
+        } catch (err) { st.innerText = "FALHA NO SENSOR"; }
     }
 </script>
 </body>
