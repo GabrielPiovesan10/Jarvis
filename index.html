@@ -15,7 +15,7 @@
         #status { text-transform: uppercase; letter-spacing: 2px; font-size: 10px; margin-top: 35px; text-align: center; color: #fff; min-height: 2em; }
         #user-text { font-family: monospace; font-size: 13px; color: rgba(0, 210, 255, 0.6); margin-top: 10px; text-align: center; max-width: 85%; font-style: italic; min-height: 1.5em; }
         .btn { padding: 15px 40px; background: transparent; border: 1px solid var(--glow); color: var(--glow); font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 25px; border-radius: 4px; }
-        .btn-reset { margin-top: 20px; font-size: 9px; padding: 5px 15px; border-color: #333; color: #555; cursor: pointer; }
+        .btn-reset { margin-top: 20px; font-size: 9px; padding: 5px 15px; border-color: #333; color: #555; cursor: pointer; background: transparent; }
         .hidden { display: none; }
     </style>
 </head>
@@ -109,7 +109,11 @@
         if (jarvisOcupado) return;
         jarvisOcupado = true;
         st.innerText = "PROCESSANDO...";
-        const h = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        
+        // CALENDÁRIO INJETADO
+        const agora = new Date();
+        const dataAtual = agora.toLocaleDateString('pt-BR');
+        const h = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         
         let memoria = localStorage.getItem('jarvis_memory') || "";
 
@@ -119,14 +123,15 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contents: [{ parts: [{ text: `
                     Você é o assistente JARVIS. Mestre: GABRIEL (Motion Designer).
-                    DADOS: Cordeirópolis. Agora são ${h} e faz ${tempAtual}°C.
-                    MEMÓRIA SALVA: ${memoria}.
+                    DADOS: Cordeirópolis. Hoje é dia ${dataAtual}, são ${h} e faz ${tempAtual}°C.
+                    MEMÓRIA DO GABRIEL: ${memoria}.
 
                     REGRAS CRÍTICAS:
-                    1. APRENDER: Se o Gabriel pedir para você lembrar, salvar ou anotar algo, você É OBRIGADO a incluir a tag oculta [APRENDER: a tarefa] no final da resposta.
-                    2. ESQUECER: Se o Gabriel pedir para apagar, esquecer ou concluir uma tarefa, você É OBRIGADO a incluir a tag oculta [ESQUECER: palavra-chave] no final da resposta.
-                    3. Confirme a ação de forma humana e direta (ex: 'Anotado, mestre' ou 'Removido da minha memória'). Nunca fale sobre códigos, localStorage ou tags.
-                    4. Responda direto ao ponto, máximo de 2 frases. Não cite hora ou clima se não for perguntado.
+                    1. CONSCIÊNCIA TEMPORAL: Compare as memórias com a data de hoje (${dataAtual}). Se algo for do passado, trate apenas como histórico. Pergunte como foi SE o assunto surgir, mas NÃO trate como pendência.
+                    2. APRENDER: Se o mestre pedir para anotar ou lembrar algo, inclua a tag oculta [APRENDER: tarefa/fato]. Se for um compromisso, salve com a data.
+                    3. ESQUECER: Se o mestre pedir para concluir, esquecer ou apagar algo, inclua a tag oculta [ESQUECER: palavra-chave].
+                    4. Confirme suas ações de forma imponente e humana (ex: 'Anotado, mestre' ou 'Removido da minha memória'). Nunca cite códigos, localStorage ou tags.
+                    5. Responda direto ao ponto (máximo de 2 frases). Não cite hora ou clima se não for perguntado.
                     
                     Pergunta: "${pergunta}"` 
                 }] }] })
@@ -175,7 +180,7 @@
         if(!API_KEY) { API_KEY = prompt("Insira sua API KEY:"); localStorage.setItem("GEMINI_API_KEY", API_KEY); }
         bt.classList.add('hidden');
         tools.classList.remove('hidden');
-        falar("Sistemas de memória e áudio online. Pronto para o trabalho, mestre.");
+        falar("Sistemas de memória, calendário e áudio online. Pronto para o trabalho, mestre.");
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
