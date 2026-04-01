@@ -73,7 +73,6 @@
         location.reload();
     }
 
-    // Carrega vozes no iOS
     window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
 
     let jarvisOcupado = false, reconhecimento;
@@ -83,13 +82,11 @@
         const m = new SpeechSynthesisUtterance(t);
         m.lang = 'pt-BR'; 
         
-        // TUNING DE VOZ PARA TIRAR O TOM ROBÓTICO
-        m.rate = 0.9;  // Mais lento (natural)
-        m.pitch = 0.8; // Mais grave (imponente)
+        m.rate = 0.9;  
+        m.pitch = 0.8; 
 
         let vozes = window.speechSynthesis.getVoices();
         
-        // Caça o Felipe, Daniel ou Siri Voz 1
         let vozExata = vozes.find(v => v.lang.includes('pt') && (
             v.name.includes('Felipe') || 
             v.name.includes('Daniel') || 
@@ -110,28 +107,31 @@
         jarvisOcupado = true;
         st.innerText = "PROCESSANDO...";
         
-        // CALENDÁRIO INJETADO
         const agora = new Date();
         const dataAtual = agora.toLocaleDateString('pt-BR');
         const h = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         
-        let memoria = localStorage.getItem('jarvis_memory') || "";
+        let memoria = localStorage.getItem('jarvis_memory') || "Ainda não há anotações.";
 
         try {
             const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${API_KEY}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contents: [{ parts: [{ text: `
-                    Você é o assistente JARVIS. Mestre: GABRIEL (Motion Designer).
+                    Você é o assistente JARVIS. Mestre: GABRIEL.
                     DADOS: Cordeirópolis. Hoje é dia ${dataAtual}, são ${h} e faz ${tempAtual}°C.
                     MEMÓRIA DO GABRIEL: ${memoria}.
 
-                    REGRAS CRÍTICAS:
-                    1. CONSCIÊNCIA TEMPORAL: Compare as memórias com a data de hoje (${dataAtual}). Se algo for do passado, trate apenas como histórico. Pergunte como foi SE o assunto surgir, mas NÃO trate como pendência.
-                    2. APRENDER: Se o mestre pedir para anotar ou lembrar algo, inclua a tag oculta [APRENDER: tarefa/fato]. Se for um compromisso, salve com a data.
-                    3. ESQUECER: Se o mestre pedir para concluir, esquecer ou apagar algo, inclua a tag oculta [ESQUECER: palavra-chave].
-                    4. Confirme suas ações de forma imponente e humana (ex: 'Anotado, mestre' ou 'Removido da minha memória'). Nunca cite códigos, localStorage ou tags.
-                    5. Responda direto ao ponto (máximo de 2 frases). Não cite hora ou clima se não for perguntado.
+                    DIRETRIZES DE PERSONA (CUMPRIMENTO OBRIGATÓRIO):
+                    - Aja com a personalidade de um mordomo britânico leal e extremamente humano.
+                    - É TERMINANTEMENTE PROIBIDO usar palavras técnicas para justificar sua memória. Nunca use: "banco de dados", "banco de registros", "sistema", "armazenamento", "arquivo", "IA", ou "modelo".
+                    - Finja ter uma mente real.
+
+                    REGRAS CRÍTICAS DE AÇÃO:
+                    1. APRENDER: Se o mestre compartilhar um gosto (ex: bolo de chocolate) ou pedir para lembrar algo, gere a tag [APRENDER: fato].
+                    2. RESPOSTA DE MEMÓRIA: Quando você aprender algo novo, você ESTÁ PROIBIDO de explicar o processo. Responda APENAS com uma destas frases: "Anotado, senhor.", "Guardado em minha memória, mestre.", ou "Registrado.". Nada além disso.
+                    3. ESQUECER: Use [ESQUECER: palavra-chave] para apagar algo, e responda apenas "Removido da minha mente, senhor."
+                    4. Seja direto, no máximo 2 frases.
                     
                     Pergunta: "${pergunta}"` 
                 }] }] })
@@ -140,7 +140,6 @@
             const data = await response.json();
             let txt = data.candidates[0].content.parts[0].text;
 
-            // SISTEMA DE GRAVAÇÃO
             if (txt.includes("[APRENDER:")) {
                 const fato = txt.match(/\[APRENDER:\s*(.*?)\]/);
                 if (fato) {
@@ -151,7 +150,6 @@
                 }
             }
 
-            // SISTEMA DE EXCLUSÃO
             if (txt.includes("[ESQUECER:")) {
                 const fatoApagar = txt.match(/\[ESQUECER:\s*(.*?)\]/);
                 if (fatoApagar) {
@@ -180,7 +178,7 @@
         if(!API_KEY) { API_KEY = prompt("Insira sua API KEY:"); localStorage.setItem("GEMINI_API_KEY", API_KEY); }
         bt.classList.add('hidden');
         tools.classList.remove('hidden');
-        falar("Sistemas de memória, calendário e áudio online. Pronto para o trabalho, mestre.");
+        falar("Regras de comportamento atualizadas. Pronto para o trabalho, senhor.");
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
