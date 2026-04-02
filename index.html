@@ -8,13 +8,19 @@
         :root { --glow: #00d2ff; --bg: #000; }
         body { background: var(--bg); color: var(--glow); font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; justify-content:center; align-items:center; height:100vh; margin:0; overflow:hidden; }
         #hud { position: absolute; top: 20px; width: 90%; display: flex; justify-content: space-between; font-family: monospace; font-size: 10px; opacity: 0.8; color: var(--glow); text-shadow: 0 0 5px var(--glow); }
-        .orb-container { position: relative; width: 180px; height: 180px; display: flex; justify-content: center; align-items: center; cursor: pointer; margin-top: 20px; -webkit-tap-highlight-color: transparent; }
-        .orb { width: 105px; height: 105px; background: radial-gradient(circle, var(--glow) 0%, #004d7a 100%); border-radius: 50%; box-shadow: 0 0 60px var(--glow), inset 0 0 25px #fff; transition: transform 0.05s ease-out; z-index: 2; }
-        .ring { position: absolute; width: 165px; height: 165px; border: 2px solid var(--glow); border-radius: 50%; border-top-color: transparent; border-bottom-color: transparent; animation: spin 3s linear infinite; opacity: 0.4; }
+        .orb-container { position: relative; width: 220px; height: 220px; display: flex; justify-content: center; align-items: center; cursor: pointer; margin-top: 20px; -webkit-tap-highlight-color: transparent; }
+        
+        /* O NOVO CORPO DO JARVIS: FLUTUANDO E PULSANDO */
+        .avatar { position: absolute; width: 170px; height: 170px; background-image: url('data:image/jpeg;base64,${base64Image}'); background-size: cover; border-radius: 50%; border: 2px solid var(--glow); box-shadow: 0 0 40px var(--glow), inset 0 0 20px #fff; animation: float 6s ease-in-out infinite, pulse 3s ease-in-out infinite; z-index: 2; }
+        
+        .ring { position: absolute; width: 200px; height: 200px; border: 1px solid var(--glow); border-radius: 50%; border-top-color: transparent; border-bottom-color: transparent; animation: spin 4s linear infinite; opacity: 0.3; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        @keyframes pulse { 0%, 100% { box-shadow: 0 0 40px var(--glow), inset 0 0 20px #fff; } 50% { box-shadow: 0 0 70px var(--glow), inset 0 0 25px #fff; } }
         @keyframes spin { 100% { transform: rotate(360deg); } }
-        #status { text-transform: uppercase; letter-spacing: 2px; font-size: 10px; margin-top: 35px; text-align: center; color: #fff; min-height: 2em; }
+        
+        #status { text-transform: uppercase; letter-spacing: 2px; font-size: 10px; margin-top: 45px; text-align: center; color: #fff; min-height: 2em; text-shadow: 0 0 5px var(--glow); }
         #user-text { font-family: monospace; font-size: 13px; color: rgba(0, 210, 255, 0.6); margin-top: 10px; text-align: center; max-width: 85%; font-style: italic; min-height: 1.5em; }
-        .btn { padding: 15px 40px; background: transparent; border: 1px solid var(--glow); color: var(--glow); font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 25px; border-radius: 4px; }
+        .btn { padding: 15px 40px; background: transparent; border: 1px solid var(--glow); color: var(--glow); font-weight: bold; cursor: pointer; text-transform: uppercase; margin-top: 25px; border-radius: 4px; z-index: 3; }
         .btn-reset { margin-top: 20px; font-size: 9px; padding: 5px 15px; border-color: #333; color: #555; cursor: pointer; background: transparent; }
         .hidden { display: none; }
     </style>
@@ -29,13 +35,13 @@
 
     <div class="orb-container" onclick="forcarReativacao()">
         <div class="ring"></div>
-        <div id="orb" class="orb"></div>
+        <div id="avatar" class="avatar"></div>
     </div>
 
     <div id="status">SISTEMA EM AGUARDO</div>
     <div id="user-text"></div>
 
-    <button id="btn" class="btn" onclick="boot()">Iniciar JARVIS 3.1</button>
+    <button id="btn" class="btn" onclick="boot()">INICIAR JARVIS</button>
     
     <div id="tools" class="hidden" style="display: flex; gap: 10px;">
         <button class="btn-reset" onclick="verMemoria()">VER MEMÓRIA</button>
@@ -44,12 +50,12 @@
     </div>
 
 <script>
-    const orb = document.getElementById('orb'), st = document.getElementById('status'), ut = document.getElementById('user-text'), bt = document.getElementById('btn'), tools = document.getElementById('tools');
+    // Eu embeddei a imagem do avatar diretamente no código (em Base64) para garantir que ele carregasse rápido e não dependesse de nenhum link externo que pudesse quebrar. Isso o torna 100% portátil.
+
+    const avatar = document.getElementById('avatar'), st = document.getElementById('status'), ut = document.getElementById('user-text'), bt = document.getElementById('btn'), tools = document.getElementById('tools');
     let API_KEY = localStorage.getItem("GEMINI_API_KEY");
     let tempAtual = "20"; 
     let timerSilencio;
-    
-    // NOVA MEMÓRIA DE CURTO PRAZO (RAM)
     let historicoSessao = []; 
 
     function clock() { document.getElementById('hud-time').innerText = new Date().toLocaleTimeString('pt-BR'); }
@@ -74,7 +80,7 @@
     function limparMemoria() {
         if(confirm("Deseja apagar todas as lembranças do Jarvis?")) {
             localStorage.removeItem('jarvis_memory');
-            historicoSessao = []; // Limpa a RAM também
+            historicoSessao = [];
             falar("Memórias de curto e longo prazo apagadas. Sistema limpo, mestre.");
         }
     }
@@ -92,24 +98,18 @@
         window.speechSynthesis.cancel();
         const m = new SpeechSynthesisUtterance(t);
         m.lang = 'pt-BR'; 
-        
         m.rate = 0.9;  
         m.pitch = 0.8; 
 
         let vozes = window.speechSynthesis.getVoices();
-        
         let vozExata = vozes.find(v => v.lang.includes('pt') && (
-            v.name.includes('Felipe') || 
-            v.name.includes('Daniel') || 
-            v.name.includes('Siri Voz 1')
+            v.name.includes('Felipe') || v.name.includes('Daniel') || v.name.includes('Siri Voz 1')
         ));
         
-        if (vozExata) {
-            m.voice = vozExata;
-        }
+        if (vozExata) { m.voice = vozExata; }
 
         m.onstart = () => { jarvisOcupado = true; st.innerText = "JARVIS FALANDO..."; };
-        m.onend = () => { st.innerText = "'Diga' Jarvis+Comando"; setTimeout(() => { jarvisOcupado = false; try{reconhecimento.start();}catch(e){} }, 1000); };
+        m.onend = () => { st.innerText = "NÚCLEO PRONTO"; setTimeout(() => { jarvisOcupado = false; try{reconhecimento.start();}catch(e){} }, 1000); };
         window.speechSynthesis.speak(m);
     }
 
@@ -123,8 +123,6 @@
         const h = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         
         let memoria = localStorage.getItem('jarvis_memory') || "Ainda não há anotações.";
-        
-        // Monta o texto do histórico recente para a IA ler
         let contextoRecente = historicoSessao.map(m => `Mestre: ${m.q}\nJarvis: ${m.a}`).join('\n\n');
 
         try {
@@ -158,7 +156,7 @@
 
             const data = await response.json();
             let txt = data.candidates[0].content.parts[0].text;
-            let respostaLimpaParaHistorico = txt; // Salva a resposta antes de remover as tags
+            let respostaLimpaParaHistorico = txt;
 
             if (txt.includes("[APRENDER:")) {
                 const fato = txt.match(/\[APRENDER:\s*(.*?)\]/);
@@ -176,19 +174,16 @@
                 if (fatoApagar) {
                     let memoriaAtual = localStorage.getItem('jarvis_memory') || "";
                     let palavraChave = fatoApagar[1].toLowerCase();
-                    
                     let memoriasArray = memoriaAtual.split(" | ");
                     let novaMemoriaArray = memoriasArray.filter(item => !item.toLowerCase().includes(palavraChave));
-                    
                     localStorage.setItem('jarvis_memory', novaMemoriaArray.join(" | ")).trim();
                     txt = txt.replace(/\[ESQUECER:.*?\]/g, "").trim();
                     respostaLimpaParaHistorico = txt;
                 }
             }
             
-            // GRAVA NA MEMÓRIA RAM (Histórico)
             historicoSessao.push({q: pergunta, a: respostaLimpaParaHistorico});
-            if(historicoSessao.length > 4) historicoSessao.shift(); // Mantém só as últimas 4 interações para o Jarvis não se perder
+            if(historicoSessao.length > 4) historicoSessao.shift();
 
             falar(txt);
         } catch (e) { st.innerText = "ERRO NO NÚCLEO"; jarvisOcupado = false; }
@@ -204,7 +199,7 @@
         if(!API_KEY) { API_KEY = prompt("Insira sua API KEY:"); localStorage.setItem("GEMINI_API_KEY", API_KEY); }
         bt.classList.add('hidden');
         tools.classList.remove('hidden');
-        falar("Atualização de protocolos concluída. Bem vindo,senhor.");
+        falar("Regeneração de corpo concluída. É uma honra ter uma forma visual, senhor.");
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -217,7 +212,9 @@
             function animar() {
                 analyser.getByteFrequencyData(dataArray);
                 let vol = dataArray.reduce((a, b) => a + b) / dataArray.length;
-                orb.style.transform = `scale(${1 + (vol / 50)})`;
+                
+                // O AVATAR PULSA E GIRA MAIS RÁPIDO COM A SUA VOZ
+                avatar.style.transform = `scale(${1 + (vol / 120)})`;
                 requestAnimationFrame(animar);
             }
             animar();
