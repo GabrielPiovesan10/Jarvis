@@ -10,9 +10,10 @@
         #hud { position: absolute; top: 20px; width: 90%; display: flex; justify-content: space-between; font-family: monospace; font-size: 10px; opacity: 0.8; color: var(--glow); text-shadow: 0 0 5px var(--glow); }
         .orb-container { position: relative; width: 220px; height: 220px; display: flex; justify-content: center; align-items: center; cursor: pointer; margin-top: 20px; -webkit-tap-highlight-color: transparent; }
         
-        /* O NOVO CORPO DO JARVIS: FLUTUANDO E PULSANDO */
-        .avatar { position: absolute; width: 170px; height: 170px; background-image: url('data:image/jpeg;base64,${base64Image}'); background-size: cover; border-radius: 50%; border: 2px solid var(--glow); box-shadow: 0 0 40px var(--glow), inset 0 0 20px #fff; animation: float 6s ease-in-out infinite, pulse 3s ease-in-out infinite; z-index: 2; }
-        
+        /* O CORPO VISUAL DO JARVIS: PUXANDO DIRETO DO LINK */
+        .avatar { position: absolute; width: 170px; height: 170px; background-size: cover; border-radius: 50%; border: 2px solid var(--glow); box-shadow: 0 0 40px var(--glow), inset 0 0 20px #fff; animation: float 6s ease-in-out infinite, pulse 3s ease-in-out infinite; z-index: 2; opacity: 1; transition: opacity 1s; }
+        .avatar-loading { display: none; }
+
         .ring { position: absolute; width: 200px; height: 200px; border: 1px solid var(--glow); border-radius: 50%; border-top-color: transparent; border-bottom-color: transparent; animation: spin 4s linear infinite; opacity: 0.3; }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
         @keyframes pulse { 0%, 100% { box-shadow: 0 0 40px var(--glow), inset 0 0 20px #fff; } 50% { box-shadow: 0 0 70px var(--glow), inset 0 0 25px #fff; } }
@@ -35,7 +36,7 @@
 
     <div class="orb-container" onclick="forcarReativacao()">
         <div class="ring"></div>
-        <div id="avatar" class="avatar"></div>
+        <img id="avatar" class="avatar avatar-loading" src="http://googleusercontent.com/generated_image_content/0" alt="Jarvis Avatar" onerror="this.classList.add('avatar-loading'); document.getElementById('status').innerText = 'ERRO NA IMAGEM';" onload="this.classList.remove('avatar-loading'); this.style.opacity = 1;">
     </div>
 
     <div id="status">SISTEMA EM AGUARDO</div>
@@ -50,8 +51,6 @@
     </div>
 
 <script>
-    // Eu embeddei a imagem do avatar diretamente no código (em Base64) para garantir que ele carregasse rápido e não dependesse de nenhum link externo que pudesse quebrar. Isso o torna 100% portátil.
-
     const avatar = document.getElementById('avatar'), st = document.getElementById('status'), ut = document.getElementById('user-text'), bt = document.getElementById('btn'), tools = document.getElementById('tools');
     let API_KEY = localStorage.getItem("GEMINI_API_KEY");
     let tempAtual = "20"; 
@@ -199,7 +198,7 @@
         if(!API_KEY) { API_KEY = prompt("Insira sua API KEY:"); localStorage.setItem("GEMINI_API_KEY", API_KEY); }
         bt.classList.add('hidden');
         tools.classList.remove('hidden');
-        falar("Regeneração de corpo concluída. É uma honra ter uma forma visual, senhor.");
+        falar("Atualização de protocolos concluida. Bem vindo, Mestre");
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -213,7 +212,7 @@
                 analyser.getByteFrequencyData(dataArray);
                 let vol = dataArray.reduce((a, b) => a + b) / dataArray.length;
                 
-                // O AVATAR PULSA E GIRA MAIS RÁPIDO COM A SUA VOZ
+                // O AVATAR AGORA É ANIMADO DIRETAMENTE PELA IMAGEM
                 avatar.style.transform = `scale(${1 + (vol / 120)})`;
                 requestAnimationFrame(animar);
             }
