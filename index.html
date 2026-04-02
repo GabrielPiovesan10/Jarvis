@@ -8,14 +8,17 @@
         :root { --glow: #00d2ff; --bg: #000; }
         body { background: var(--bg); color: var(--glow); font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; justify-content:center; align-items:center; height:100vh; margin:0; overflow:hidden; }
         #hud { position: absolute; top: 20px; width: 90%; display: flex; justify-content: space-between; font-family: monospace; font-size: 10px; opacity: 0.8; color: var(--glow); text-shadow: 0 0 5px var(--glow); }
-        .orb-container { position: relative; width: 220px; height: 220px; display: flex; justify-content: center; align-items: center; cursor: pointer; margin-top: 20px; -webkit-tap-highlight-color: transparent; }
         
-        /* O CORPO VISUAL DO JARVIS: CARREGADO DE ARQUIVO LOCAL */
-        .avatar { position: absolute; width: 170px; height: 170px; background-size: cover; border-radius: 50%; border: 2px solid var(--glow); box-shadow: 0 0 40px var(--glow), inset 0 0 20px #fff; animation: float 6s ease-in-out infinite, pulse 3s ease-in-out infinite; z-index: 2; opacity: 1; transition: opacity 1s; }
-        .avatar-loading { display: none; } /* Esconde o avatar se a imagem falhar */
+        /* A caixa toda flutua agora, resolvendo o conflito */
+        .orb-container { position: relative; width: 220px; height: 220px; display: flex; justify-content: center; align-items: center; cursor: pointer; margin-top: 20px; -webkit-tap-highlight-color: transparent; animation: float 6s ease-in-out infinite; }
+        
+        /* O Avatar fica livre para pulsar com a voz */
+        .avatar { position: absolute; width: 170px; height: 170px; background-size: cover; border-radius: 50%; border: 2px solid var(--glow); box-shadow: 0 0 40px var(--glow), inset 0 0 20px #fff; animation: pulse 3s ease-in-out infinite; z-index: 2; opacity: 1; transition: opacity 1s; }
+        .avatar-loading { display: none; } 
 
         .ring { position: absolute; width: 200px; height: 200px; border: 1px solid var(--glow); border-radius: 50%; border-top-color: transparent; border-bottom-color: transparent; animation: spin 4s linear infinite; opacity: 0.3; }
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
         @keyframes pulse { 0%, 100% { box-shadow: 0 0 40px var(--glow), inset 0 0 20px #fff; } 50% { box-shadow: 0 0 70px var(--glow), inset 0 0 25px #fff; } }
         @keyframes spin { 100% { transform: rotate(360deg); } }
         
@@ -108,7 +111,7 @@
         if (vozExata) { m.voice = vozExata; }
 
         m.onstart = () => { jarvisOcupado = true; st.innerText = "JARVIS FALANDO..."; };
-        m.onend = () => { st.innerText = "NÚCLEO PRONTO"; setTimeout(() => { jarvisOcupado = false; try{reconhecimento.start();}catch(e){} }, 1000); };
+        m.onend = () => { st.innerText = "'Diga' Jarvis+Comando"; setTimeout(() => { jarvisOcupado = false; try{reconhecimento.start();}catch(e){} }, 1000); };
         window.speechSynthesis.speak(m);
     }
 
@@ -198,7 +201,7 @@
         if(!API_KEY) { API_KEY = prompt("Insira sua API KEY:"); localStorage.setItem("GEMINI_API_KEY", API_KEY); }
         bt.classList.add('hidden');
         tools.classList.remove('hidden');
-        falar("Regeneração de corpo concluída. É uma honra ter uma forma visual, senhor.");
+        falar("Protocolos de atualizações concluida. Bem vindo, Mestre.");
 
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -212,8 +215,8 @@
                 analyser.getByteFrequencyData(dataArray);
                 let vol = dataArray.reduce((a, b) => a + b) / dataArray.length;
                 
-                // O AVATAR AGORA É ANIMADO DIRETAMENTE PELA IMAGEM
-                avatar.style.transform = `scale(${1 + (vol / 120)})`;
+                // Sensibilidade aumentada: mudei o divisor de volta para 40!
+                avatar.style.transform = `scale(${1 + (vol / 40)})`;
                 requestAnimationFrame(animar);
             }
             animar();
